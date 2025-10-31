@@ -103,6 +103,18 @@ class Vendor extends Model
             ->where('to_date', '>=', now());
     }
 
+    public function bankChangeRequests()
+    {
+        return $this->hasMany(VendorBankChangeRequest::class);
+    }
+
+    public function pendingBankChangeRequest()
+    {
+        return $this->hasOne(VendorBankChangeRequest::class)
+            ->where('status', 'pending')
+            ->latest();
+    }
+
     public function suspendedBy()
     {
         return $this->belongsTo(User::class, 'suspended_by');

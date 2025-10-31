@@ -247,9 +247,25 @@ Route::prefix('v1')->group(function () {
             Route::get('settings/profile', [VendorSettingsController::class, 'getProfile']);
             Route::put('settings/profile', [VendorSettingsController::class, 'updateProfile']);
             Route::put('settings/store', [VendorSettingsController::class, 'updateStore']);
-            Route::put('settings/bank', [VendorSettingsController::class, 'updateBankDetails']);
-            Route::get('settings/notifications', [VendorSettingsController::class, 'getNotificationPreferences']);
-            Route::put('settings/notifications', [VendorSettingsController::class, 'updateNotificationPreferences']);
+
+            // Email change with OTP
+            Route::post('settings/email/request-change', [VendorSettingsController::class, 'requestEmailChange']);
+            Route::post('settings/email/verify-old', [VendorSettingsController::class, 'verifyOldEmailOtp']);
+            Route::post('settings/email/verify-new', [VendorSettingsController::class, 'verifyNewEmailOtp']);
+
+            // Phone change with WhatsApp OTP
+            Route::post('settings/phone/request-change', [VendorSettingsController::class, 'requestPhoneChange']);
+            Route::post('settings/phone/verify-old', [VendorSettingsController::class, 'verifyOldPhoneOtp']);
+            Route::post('settings/phone/verify-new', [VendorSettingsController::class, 'verifyNewPhoneOtp']);
+
+            // Bank details (read-only, change via request)
+            Route::get('settings/bank', [VendorSettingsController::class, 'getBankDetails']);
+
+            // Bank change requests
+            Route::get('bank-change-requests', [\App\Http\Controllers\Api\V1\Vendor\VendorBankChangeRequestController::class, 'index']);
+            Route::get('bank-change-requests/pending', [\App\Http\Controllers\Api\V1\Vendor\VendorBankChangeRequestController::class, 'getPending']);
+            Route::post('bank-change-requests', [\App\Http\Controllers\Api\V1\Vendor\VendorBankChangeRequestController::class, 'store']);
+            Route::delete('bank-change-requests/{id}', [\App\Http\Controllers\Api\V1\Vendor\VendorBankChangeRequestController::class, 'cancel']);
 
             // Analytics
             Route::get('analytics/statistics', [VendorAnalyticsController::class, 'statistics']);
@@ -330,6 +346,13 @@ Route::prefix('v1')->group(function () {
             Route::post('vendor-leaves/{leaveId}/approve', [VendorLeaveController::class, 'approve']);
             Route::post('vendor-leaves/{leaveId}/reject', [VendorLeaveController::class, 'reject']);
             Route::post('vendor-leaves/{leaveId}/complete', [VendorLeaveController::class, 'complete']);
+
+            // Vendor Bank Change Requests
+            Route::get('vendor-bank-change-requests', [\App\Http\Controllers\Api\Admin\VendorBankChangeRequestController::class, 'index']);
+            Route::get('vendor-bank-change-requests/statistics', [\App\Http\Controllers\Api\Admin\VendorBankChangeRequestController::class, 'statistics']);
+            Route::get('vendor-bank-change-requests/{id}', [\App\Http\Controllers\Api\Admin\VendorBankChangeRequestController::class, 'show']);
+            Route::post('vendor-bank-change-requests/{id}/approve', [\App\Http\Controllers\Api\Admin\VendorBankChangeRequestController::class, 'approve']);
+            Route::post('vendor-bank-change-requests/{id}/reject', [\App\Http\Controllers\Api\Admin\VendorBankChangeRequestController::class, 'reject']);
 
             // System Settings
             Route::get('settings', [AdminDashboardController::class, 'getSettings']);

@@ -33,7 +33,7 @@ class VendorSettingsController extends Controller
     }
 
     /**
-     * Update vendor profile
+     * Update vendor profile (name and other non-sensitive fields are not editable after registration)
      */
     public function updateProfile(Request $request)
     {
@@ -46,24 +46,250 @@ class VendorSettingsController extends Controller
             ], 404);
         }
 
+        // Name and other profile details are not editable after registration
+        // Only email and phone can be changed through OTP verification
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Profile details cannot be changed. To update email or phone, use the respective change endpoints with OTP verification.',
+        ], 422);
+    }
+
+    /**
+     * Request email change - Send OTP to old email
+     */
+    public function requestEmailChange(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
         $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $request->user()->id,
-            'phone' => 'sometimes|required|string|max:20',
+            'new_email' => 'required|email|unique:users,email',
         ]);
 
-        // Update user details
-        if ($request->has('name') || $request->has('email') || $request->has('phone')) {
-            $request->user()->update([
-                'name' => $request->get('name', $request->user()->name),
-                'email' => $request->get('email', $request->user()->email),
-                'phone' => $request->get('phone', $request->user()->phone),
-            ]);
-        }
+        // Generate OTP for old email
+        $oldOtp = rand(100000, 999999);
+
+        // Store OTP in session or cache
+        cache()->put('email_change_old_otp_' . $request->user()->id, $oldOtp, now()->addMinutes(10));
+        cache()->put('email_change_new_email_' . $request->user()->id, $request->new_email, now()->addMinutes(10));
+
+        // TODO: Send OTP to old email via email service
+        // For now, return OTP in response (remove in production)
 
         return response()->json([
             'success' => true,
-            'message' => 'Profile updated successfully',
+            'message' => 'OTP sent to your current email address',
+            'debug_otp' => $oldOtp, // Remove in production
+        ]);
+    }
+
+    /**
+     * Verify old email OTP and send OTP to new email
+     */
+    public function verifyOldEmailOtp(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $cachedOtp = cache()->get('email_change_old_otp_' . $request->user()->id);
+
+        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP',
+            ], 422);
+        }
+
+        // Generate OTP for new email
+        $newOtp = rand(100000, 999999);
+        $newEmail = cache()->get('email_change_new_email_' . $request->user()->id);
+
+        cache()->put('email_change_new_otp_' . $request->user()->id, $newOtp, now()->addMinutes(10));
+
+        // TODO: Send OTP to new email via email service
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Old email verified. OTP sent to new email address',
+            'debug_otp' => $newOtp, // Remove in production
+        ]);
+    }
+
+    /**
+     * Verify new email OTP and complete email change
+     */
+    public function verifyNewEmailOtp(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $cachedOtp = cache()->get('email_change_new_otp_' . $request->user()->id);
+        $newEmail = cache()->get('email_change_new_email_' . $request->user()->id);
+
+        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP',
+            ], 422);
+        }
+
+        // Update email
+        $request->user()->update(['email' => $newEmail]);
+
+        // Clear cache
+        cache()->forget('email_change_old_otp_' . $request->user()->id);
+        cache()->forget('email_change_new_otp_' . $request->user()->id);
+        cache()->forget('email_change_new_email_' . $request->user()->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email updated successfully',
+            'data' => $vendor->fresh(['user']),
+        ]);
+    }
+
+    /**
+     * Request phone change - Send WhatsApp OTP to old phone
+     */
+    public function requestPhoneChange(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'new_phone' => 'required|string|max:15|unique:users,phone',
+        ]);
+
+        // Generate OTP for old phone
+        $oldOtp = rand(100000, 999999);
+
+        // Store OTP in cache
+        cache()->put('phone_change_old_otp_' . $request->user()->id, $oldOtp, now()->addMinutes(10));
+        cache()->put('phone_change_new_phone_' . $request->user()->id, $request->new_phone, now()->addMinutes(10));
+
+        // TODO: Send WhatsApp OTP to old phone
+
+        return response()->json([
+            'success' => true,
+            'message' => 'WhatsApp OTP sent to your current phone number',
+            'debug_otp' => $oldOtp, // Remove in production
+        ]);
+    }
+
+    /**
+     * Verify old phone OTP and send WhatsApp OTP to new phone
+     */
+    public function verifyOldPhoneOtp(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $cachedOtp = cache()->get('phone_change_old_otp_' . $request->user()->id);
+
+        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP',
+            ], 422);
+        }
+
+        // Generate OTP for new phone
+        $newOtp = rand(100000, 999999);
+        $newPhone = cache()->get('phone_change_new_phone_' . $request->user()->id);
+
+        cache()->put('phone_change_new_otp_' . $request->user()->id, $newOtp, now()->addMinutes(10));
+
+        // TODO: Send WhatsApp OTP to new phone
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Old phone verified. WhatsApp OTP sent to new phone number',
+            'debug_otp' => $newOtp, // Remove in production
+        ]);
+    }
+
+    /**
+     * Verify new phone OTP and complete phone change
+     */
+    public function verifyNewPhoneOtp(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $cachedOtp = cache()->get('phone_change_new_otp_' . $request->user()->id);
+        $newPhone = cache()->get('phone_change_new_phone_' . $request->user()->id);
+
+        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP',
+            ], 422);
+        }
+
+        // Update phone
+        $request->user()->update(['phone' => $newPhone]);
+
+        // Clear cache
+        cache()->forget('phone_change_old_otp_' . $request->user()->id);
+        cache()->forget('phone_change_new_otp_' . $request->user()->id);
+        cache()->forget('phone_change_new_phone_' . $request->user()->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Phone number updated successfully',
             'data' => $vendor->fresh(['user']),
         ]);
     }
@@ -112,9 +338,9 @@ class VendorSettingsController extends Controller
     }
 
     /**
-     * Update bank details
+     * Get bank details
      */
-    public function updateBankDetails(Request $request)
+    public function getBankDetails(Request $request)
     {
         $vendor = $request->user()->vendor;
 
@@ -125,87 +351,15 @@ class VendorSettingsController extends Controller
             ], 404);
         }
 
-        $request->validate([
-            'account_holder_name' => 'required|string|max:255',
-            'account_number' => 'required|string|max:50',
-            'ifsc_code' => 'required|string|max:20',
-            'bank_name' => 'required|string|max:255',
-            'branch_name' => 'nullable|string|max:255',
-        ]);
-
-        $bankAccount = VendorBankAccount::updateOrCreate(
-            ['vendor_id' => $vendor->id],
-            $request->only([
-                'account_holder_name',
-                'account_number',
-                'ifsc_code',
-                'bank_name',
-                'branch_name',
-            ])
-        );
+        $bankAccount = $vendor->bankAccount;
+        $pendingRequest = $vendor->pendingBankChangeRequest;
 
         return response()->json([
             'success' => true,
-            'message' => 'Bank details updated successfully',
-            'data' => $bankAccount,
-        ]);
-    }
-
-    /**
-     * Get notification preferences
-     */
-    public function getNotificationPreferences(Request $request)
-    {
-        $vendor = $request->user()->vendor;
-
-        if (!$vendor) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vendor profile not found',
-            ], 404);
-        }
-
-        // Get preferences from user meta or default values
-        $preferences = [
-            'order_notifications' => true,
-            'email_notifications' => true,
-            'whatsapp_notifications' => false,
-            'marketing_emails' => false,
-        ];
-
-        return response()->json([
-            'success' => true,
-            'data' => $preferences,
-        ]);
-    }
-
-    /**
-     * Update notification preferences
-     */
-    public function updateNotificationPreferences(Request $request)
-    {
-        $vendor = $request->user()->vendor;
-
-        if (!$vendor) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vendor profile not found',
-            ], 404);
-        }
-
-        $request->validate([
-            'order_notifications' => 'boolean',
-            'email_notifications' => 'boolean',
-            'whatsapp_notifications' => 'boolean',
-            'marketing_emails' => 'boolean',
-        ]);
-
-        // Store preferences (you can add a meta table or JSON column)
-        // For now, just return success
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Notification preferences updated successfully',
+            'data' => [
+                'current_bank' => $bankAccount,
+                'pending_request' => $pendingRequest,
+            ],
         ]);
     }
 }
