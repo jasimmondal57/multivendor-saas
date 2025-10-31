@@ -16,6 +16,9 @@ use App\Models\VendorPayout;
 use App\Models\VendorBankAccount;
 use App\Models\VendorStore;
 use App\Models\PlatformRevenue;
+use App\Models\SupportCategory;
+use App\Models\SupportTicket;
+use App\Models\SupportTicketMessage;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Carbon\Carbon;
@@ -584,6 +587,206 @@ class DemoDataSeeder extends Seeder
             }
         }
 
+        // 9. Create Demo Support Tickets
+        $this->command->info('🎫 Creating Demo Support Tickets...');
+
+        // Seed support categories first
+        $this->call(SupportCategoriesSeeder::class);
+
+        $supportTickets = [];
+
+        // Customer Tickets
+        $customerCategories = SupportCategory::forCustomer()->get();
+
+        // Ticket 1: Customer - Order Issue (Open)
+        $ticket1 = SupportTicket::create([
+            'ticket_number' => SupportTicket::generateTicketNumber(),
+            'user_id' => $customers[0]->id,
+            'user_type' => 'customer',
+            'support_category_id' => $customerCategories->where('slug', 'order-issues')->first()->id,
+            'subject' => 'Order not delivered yet',
+            'description' => 'I placed an order 5 days ago but it still shows "In Transit". Can you please check the status?',
+            'order_id' => $orders[0]->id,
+            'priority' => 'high',
+            'status' => 'open',
+            'created_at' => now()->subDays(2),
+        ]);
+
+        SupportTicketMessage::create([
+            'support_ticket_id' => $ticket1->id,
+            'user_id' => $admin->id,
+            'sender_type' => 'admin',
+            'message' => 'Thank you for contacting us. We are checking with the courier partner and will update you shortly.',
+            'is_internal_note' => false,
+            'created_at' => now()->subDays(1),
+        ]);
+
+        $ticket1->update([
+            'assigned_to' => $admin->id,
+            'assigned_at' => now()->subDays(1),
+            'first_response_at' => now()->subDays(1),
+            'last_response_at' => now()->subDays(1),
+            'status' => 'in_progress',
+        ]);
+
+        $supportTickets[] = $ticket1;
+
+        // Ticket 2: Customer - Payment Issue (Resolved)
+        $ticket2 = SupportTicket::create([
+            'ticket_number' => SupportTicket::generateTicketNumber(),
+            'user_id' => $customers[1]->id,
+            'user_type' => 'customer',
+            'support_category_id' => $customerCategories->where('slug', 'payment-refund')->first()->id,
+            'subject' => 'Refund not received',
+            'description' => 'I returned a product 10 days ago but haven\'t received my refund yet.',
+            'priority' => 'medium',
+            'status' => 'resolved',
+            'assigned_to' => $admin->id,
+            'assigned_at' => now()->subDays(5),
+            'first_response_at' => now()->subDays(5),
+            'last_response_at' => now()->subDays(1),
+            'resolved_at' => now()->subDays(1),
+            'resolution_notes' => 'Refund processed successfully. Amount will be credited within 5-7 business days.',
+            'rating' => 5,
+            'feedback' => 'Great support! Issue resolved quickly.',
+            'created_at' => now()->subDays(6),
+        ]);
+
+        SupportTicketMessage::create([
+            'support_ticket_id' => $ticket2->id,
+            'user_id' => $admin->id,
+            'sender_type' => 'admin',
+            'message' => 'We have checked your refund status. The refund was processed on ' . now()->subDays(2)->format('Y-m-d') . ' and will be credited to your account within 5-7 business days.',
+            'is_internal_note' => false,
+            'created_at' => now()->subDays(5),
+        ]);
+
+        $supportTickets[] = $ticket2;
+
+        // Ticket 3: Customer - Product Issue (Waiting for customer)
+        $ticket3 = SupportTicket::create([
+            'ticket_number' => SupportTicket::generateTicketNumber(),
+            'user_id' => $customers[2]->id,
+            'user_type' => 'customer',
+            'support_category_id' => $customerCategories->where('slug', 'product-issues')->first()->id,
+            'subject' => 'Received damaged product',
+            'description' => 'The product I received has a crack on the screen. I need a replacement.',
+            'product_id' => $products[0]->id,
+            'priority' => 'high',
+            'status' => 'waiting_customer',
+            'assigned_to' => $admin->id,
+            'assigned_at' => now()->subHours(12),
+            'first_response_at' => now()->subHours(11),
+            'last_response_at' => now()->subHours(11),
+            'created_at' => now()->subHours(13),
+        ]);
+
+        SupportTicketMessage::create([
+            'support_ticket_id' => $ticket3->id,
+            'user_id' => $admin->id,
+            'sender_type' => 'admin',
+            'message' => 'We are sorry to hear about this. Please upload photos of the damaged product so we can process your replacement request.',
+            'is_internal_note' => false,
+            'created_at' => now()->subHours(11),
+        ]);
+
+        $supportTickets[] = $ticket3;
+
+        // Vendor Tickets
+        $vendorCategories = SupportCategory::forVendor()->get();
+
+        // Ticket 4: Vendor - Payout Issue (Open)
+        $ticket4 = SupportTicket::create([
+            'ticket_number' => SupportTicket::generateTicketNumber(),
+            'user_id' => $vendorUsers[0]->id,
+            'user_type' => 'vendor',
+            'vendor_id' => $vendorModels[0]->id,
+            'support_category_id' => $vendorCategories->where('slug', 'payout-issues')->first()->id,
+            'subject' => 'Payout amount mismatch',
+            'description' => 'The payout I received is less than expected. Can you please provide a detailed breakdown?',
+            'priority' => 'high',
+            'status' => 'assigned',
+            'assigned_to' => $admin->id,
+            'assigned_at' => now()->subHours(6),
+            'created_at' => now()->subHours(8),
+        ]);
+
+        $supportTickets[] = $ticket4;
+
+        // Ticket 5: Vendor - Product Listing (Resolved)
+        $ticket5 = SupportTicket::create([
+            'ticket_number' => SupportTicket::generateTicketNumber(),
+            'user_id' => $vendorUsers[1]->id,
+            'user_type' => 'vendor',
+            'vendor_id' => $vendorModels[1]->id,
+            'support_category_id' => $vendorCategories->where('slug', 'product-listing')->first()->id,
+            'subject' => 'Product approval pending',
+            'description' => 'I uploaded a new product 3 days ago but it\'s still pending approval.',
+            'product_id' => $products[5]->id,
+            'priority' => 'medium',
+            'status' => 'resolved',
+            'assigned_to' => $admin->id,
+            'assigned_at' => now()->subDays(2),
+            'first_response_at' => now()->subDays(2),
+            'last_response_at' => now()->subDays(1),
+            'resolved_at' => now()->subDays(1),
+            'resolution_notes' => 'Product has been approved and is now live on the platform.',
+            'rating' => 4,
+            'feedback' => 'Good support, but approval took longer than expected.',
+            'created_at' => now()->subDays(3),
+        ]);
+
+        SupportTicketMessage::create([
+            'support_ticket_id' => $ticket5->id,
+            'user_id' => $admin->id,
+            'sender_type' => 'admin',
+            'message' => 'Your product has been reviewed and approved. It is now live on the platform.',
+            'is_internal_note' => false,
+            'created_at' => now()->subDays(2),
+        ]);
+
+        $supportTickets[] = $ticket5;
+
+        // Ticket 6: Vendor - Technical Issue (In Progress)
+        $ticket6 = SupportTicket::create([
+            'ticket_number' => SupportTicket::generateTicketNumber(),
+            'user_id' => $vendorUsers[2]->id,
+            'user_type' => 'vendor',
+            'vendor_id' => $vendorModels[2]->id,
+            'support_category_id' => $vendorCategories->where('slug', 'technical-issues')->first()->id,
+            'subject' => 'Unable to upload product images',
+            'description' => 'I\'m getting an error when trying to upload product images. The error says "File too large" even though the images are under 2MB.',
+            'priority' => 'medium',
+            'status' => 'in_progress',
+            'assigned_to' => $admin->id,
+            'assigned_at' => now()->subHours(4),
+            'first_response_at' => now()->subHours(3),
+            'last_response_at' => now()->subHours(2),
+            'created_at' => now()->subHours(5),
+        ]);
+
+        SupportTicketMessage::create([
+            'support_ticket_id' => $ticket6->id,
+            'user_id' => $admin->id,
+            'sender_type' => 'admin',
+            'message' => 'We are investigating this issue. Can you please try uploading the images in JPG format instead of PNG?',
+            'is_internal_note' => false,
+            'created_at' => now()->subHours(3),
+        ]);
+
+        SupportTicketMessage::create([
+            'support_ticket_id' => $ticket6->id,
+            'user_id' => $vendorUsers[2]->id,
+            'sender_type' => 'vendor',
+            'message' => 'I tried JPG format but still getting the same error.',
+            'is_internal_note' => false,
+            'created_at' => now()->subHours(2),
+        ]);
+
+        $supportTickets[] = $ticket6;
+
+        $this->command->info("  ✓ Created {$supportTickets->count()} demo support tickets");
+
         $this->command->info('');
         $this->command->info('✅ Demo Data Seeding Complete!');
         $this->command->info('');
@@ -594,6 +797,8 @@ class DemoDataSeeder extends Seeder
         $this->command->info('  • Customers: ' . count($customers));
         $this->command->info('  • Orders: ' . count($orders));
         $this->command->info('  • Payouts with TDS: ' . VendorPayout::count());
+        $this->command->info('  • Support Tickets: ' . SupportTicket::count());
+        $this->command->info('  • Support Categories: ' . SupportCategory::count());
         $this->command->info('');
         $this->command->info('🔑 Login Credentials:');
         $this->command->info('  Admin: admin@multivendor.com / password');

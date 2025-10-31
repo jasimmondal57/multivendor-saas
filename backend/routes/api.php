@@ -37,6 +37,9 @@ use App\Http\Controllers\Api\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\Admin\BannerController;
 use App\Http\Controllers\Api\Admin\MenuController;
 use App\Http\Controllers\Api\V1\PageController;
+use App\Http\Controllers\Api\V1\Customer\CustomerSupportController;
+use App\Http\Controllers\Api\V1\Vendor\VendorSupportController;
+use App\Http\Controllers\Api\Admin\AdminSupportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -489,6 +492,49 @@ Route::prefix('v1')->group(function () {
     Route::prefix('webhooks')->group(function () {
         Route::post('delhivery', [\App\Http\Controllers\Api\V1\DelhiveryWebhookController::class, 'handle']);
         Route::get('delhivery/test', [\App\Http\Controllers\Api\V1\DelhiveryWebhookController::class, 'test']);
+    });
+});
+
+// ============================================
+// SUPPORT & HELP SYSTEM ROUTES
+// ============================================
+
+// Customer Support Routes
+Route::prefix('v1/customer')->middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('support')->group(function () {
+        Route::get('categories', [CustomerSupportController::class, 'getCategories']);
+        Route::get('tickets', [CustomerSupportController::class, 'index']);
+        Route::post('tickets', [CustomerSupportController::class, 'store']);
+        Route::get('tickets/{id}', [CustomerSupportController::class, 'show']);
+        Route::post('tickets/{id}/messages', [CustomerSupportController::class, 'sendMessage']);
+        Route::post('tickets/{id}/rate', [CustomerSupportController::class, 'rateTicket']);
+    });
+});
+
+// Vendor Support Routes
+Route::prefix('v1/vendor')->middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('support')->group(function () {
+        Route::get('categories', [VendorSupportController::class, 'getCategories']);
+        Route::get('tickets', [VendorSupportController::class, 'index']);
+        Route::post('tickets', [VendorSupportController::class, 'store']);
+        Route::get('tickets/{id}', [VendorSupportController::class, 'show']);
+        Route::post('tickets/{id}/messages', [VendorSupportController::class, 'sendMessage']);
+        Route::post('tickets/{id}/rate', [VendorSupportController::class, 'rateTicket']);
+    });
+});
+
+// Admin Support Routes
+Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('support')->group(function () {
+        Route::get('tickets', [AdminSupportController::class, 'index']);
+        Route::get('tickets/statistics', [AdminSupportController::class, 'getStatistics']);
+        Route::get('tickets/{id}', [AdminSupportController::class, 'show']);
+        Route::post('tickets/{id}/assign', [AdminSupportController::class, 'assign']);
+        Route::put('tickets/{id}/status', [AdminSupportController::class, 'updateStatus']);
+        Route::put('tickets/{id}/priority', [AdminSupportController::class, 'updatePriority']);
+        Route::post('tickets/{id}/messages', [AdminSupportController::class, 'sendMessage']);
+        Route::post('tickets/{id}/resolve', [AdminSupportController::class, 'resolve']);
+        Route::get('admins', [AdminSupportController::class, 'getAdmins']);
     });
 });
 
