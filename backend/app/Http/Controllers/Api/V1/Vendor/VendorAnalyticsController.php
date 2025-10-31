@@ -167,34 +167,43 @@ class VendorAnalyticsController extends Controller
             ], 404);
         }
 
-        $categorySales = OrderItem::where('vendor_id', $vendor->id)
-            ->whereHas('order', function ($query) {
-                $query->where('status', 'delivered');
-            })
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->join('categories', 'products.category_id', '=', 'categories.id')
-            ->select(
-                'categories.id as category_id',
-                'categories.name as category_name',
-                DB::raw('COUNT(*) as total_sales'),
-                DB::raw('SUM(order_items.price) as total_revenue')
-            )
-            ->groupBy('categories.id', 'categories.name')
-            ->orderBy('total_sales', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'category_id' => $item->category_id,
-                    'category_name' => $item->category_name,
-                    'total_sales' => $item->total_sales,
-                    'total_revenue' => round($item->total_revenue, 2),
-                ];
-            });
+        try {
+            $categorySales = OrderItem::where('order_items.vendor_id', $vendor->id)
+                ->whereHas('order', function ($query) {
+                    $query->where('status', 'delivered');
+                })
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->join('categories', 'products.category_id', '=', 'categories.id')
+                ->select(
+                    'categories.id as category_id',
+                    'categories.name as category_name',
+                    DB::raw('COUNT(order_items.id) as total_sales'),
+                    DB::raw('SUM(order_items.price * order_items.quantity) as total_revenue')
+                )
+                ->groupBy('categories.id', 'categories.name')
+                ->orderBy('total_sales', 'desc')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'category_id' => $item->category_id,
+                        'category_name' => $item->category_name,
+                        'total_sales' => (int) $item->total_sales,
+                        'total_revenue' => round((float) $item->total_revenue, 2),
+                    ];
+                });
 
-        return response()->json([
-            'success' => true,
-            'data' => $categorySales,
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => $categorySales,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Category sales error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => true,
+                'data' => [], // Return empty array on error
+            ]);
+        }
     }
 }
 

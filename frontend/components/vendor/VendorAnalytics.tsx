@@ -130,7 +130,7 @@ export default function VendorAnalytics() {
               </svg>
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-900">₹{stats?.total_revenue.toLocaleString('en-IN') || 0}</div>
+          <div className="text-2xl font-bold text-gray-900">₹{stats?.total_revenue?.toLocaleString('en-IN') || '0'}</div>
           <div className="text-sm text-gray-600">Revenue</div>
         </div>
 
