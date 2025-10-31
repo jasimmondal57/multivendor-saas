@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ImageUploadController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\Vendor\VendorOrderController;
+use App\Http\Controllers\Api\V1\Vendor\VendorReturnController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\WishlistController;
 use App\Http\Controllers\Api\V1\CouponController;
@@ -203,6 +204,18 @@ Route::prefix('v1')->group(function () {
             Route::post('orders/{orderId}/items/{itemId}/ready-to-ship', [VendorOrderController::class, 'markReadyToShip']);
             Route::post('orders/{orderId}/items/{itemId}/generate-label', [VendorOrderController::class, 'generateShippingLabel']);
             Route::get('orders/{orderId}/items/{itemId}/timeline', [VendorOrderController::class, 'getOrderTimeline']);
+
+            // Return Orders Management
+            Route::get('returns/statistics', [VendorReturnController::class, 'statistics']);
+            Route::get('returns', [VendorReturnController::class, 'index']);
+            Route::get('returns/{id}', [VendorReturnController::class, 'show']);
+            Route::post('returns/{id}/approve', [VendorReturnController::class, 'approve']);
+            Route::post('returns/{id}/reject', [VendorReturnController::class, 'reject']);
+            Route::post('returns/{id}/schedule-pickup', [VendorReturnController::class, 'schedulePickup']);
+            Route::post('returns/{id}/mark-received', [VendorReturnController::class, 'markReceived']);
+            Route::post('returns/{id}/complete-inspection', [VendorReturnController::class, 'completeInspection']);
+            Route::post('returns/{id}/initiate-refund', [VendorReturnController::class, 'initiateRefund']);
+            Route::get('returns/{id}/timeline', [VendorReturnController::class, 'getTimeline']);
 
             // Reviews
             Route::post('reviews/{id}/response', [ReviewController::class, 'vendorResponse']);
