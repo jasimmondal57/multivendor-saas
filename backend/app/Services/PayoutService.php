@@ -58,9 +58,16 @@ class PayoutService
         $tdsRate = SystemSetting::get('tds_rate', 1);
         $tdsAmount = ($totalSales * $tdsRate) / 100;
 
+        // Calculate return shipping fees for customer-initiated returns in this period
+        $returnShippingFees = \App\Models\ReturnOrder::where('vendor_id', $vendor->id)
+            ->where('is_customer_return', true)
+            ->whereIn('status', ['refund_completed', 'completed'])
+            ->whereBetween('refund_completed_at', [$periodStart, $periodEnd])
+            ->sum('return_shipping_fee');
+
         // Calculate net amount
-        // Net = Total Sales - Commission (excl GST) - GST on Commission - TDS
-        $netAmount = $totalSales - $platformCommission - $commissionGst - $tdsAmount;
+        // Net = Total Sales - Commission (excl GST) - GST on Commission - TDS - Return Shipping Fees
+        $netAmount = $totalSales - $platformCommission - $commissionGst - $tdsAmount - $returnShippingFees;
 
         return [
             'success' => true,
@@ -73,6 +80,7 @@ class PayoutService
                 'total_commission_with_gst' => round($totalCommissionWithGst, 2),
                 'tds_amount' => round($tdsAmount, 2),
                 'tds_rate' => $tdsRate,
+                'return_shipping_fees' => round($returnShippingFees, 2),
                 'net_amount' => round($netAmount, 2),
                 'total_orders' => $totalOrders,
                 'order_ids' => $orderIds,
@@ -100,6 +108,7 @@ class PayoutService
             'total_commission_with_gst' => $data['total_commission_with_gst'],
             'tds_amount' => $data['tds_amount'],
             'tds_rate' => $data['tds_rate'],
+            'return_shipping_fees' => $data['return_shipping_fees'] ?? 0,
             'adjustment_amount' => $data['adjustment_amount'] ?? 0,
             'adjustment_reason' => $data['adjustment_reason'] ?? null,
             'net_amount' => $data['net_amount'] + ($data['adjustment_amount'] ?? 0),
