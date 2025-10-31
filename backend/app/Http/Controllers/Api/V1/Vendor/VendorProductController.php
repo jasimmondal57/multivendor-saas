@@ -140,8 +140,6 @@ class VendorProductController extends Controller
             'length' => 'nullable|numeric|min:0',
             'width' => 'nullable|numeric|min:0',
             'height' => 'nullable|numeric|min:0',
-            'is_returnable' => 'boolean',
-            'return_period_days' => 'nullable|integer|min:0',
             'hsn_code' => 'nullable|string|max:20',
             'gst_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
@@ -181,8 +179,8 @@ class VendorProductController extends Controller
             'length' => $request->length,
             'width' => $request->width,
             'height' => $request->height,
-            'is_returnable' => $request->get('is_returnable', true),
-            'return_period_days' => $request->get('return_period_days', 7),
+            'is_returnable' => true, // Controlled by platform settings
+            'return_period_days' => 7, // Default value, controlled by platform settings
             'hsn_code' => $request->hsn_code,
             'gst_percentage' => $request->get('gst_percentage', 18),
             'status' => 'pending', // Requires admin approval
@@ -223,8 +221,6 @@ class VendorProductController extends Controller
             'stock_quantity' => 'sometimes|required|integer|min:0',
             'low_stock_threshold' => 'nullable|integer|min:0',
             'weight' => 'nullable|numeric|min:0',
-            'is_returnable' => 'boolean',
-            'return_period_days' => 'nullable|integer|min:0',
             'hsn_code' => 'nullable|string|max:20',
             'gst_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
@@ -232,7 +228,7 @@ class VendorProductController extends Controller
         $data = $request->only([
             'category_id', 'name', 'sku', 'description', 'short_description',
             'mrp', 'selling_price', 'cost_price', 'stock_quantity', 'low_stock_threshold',
-            'weight', 'length', 'width', 'height', 'is_returnable', 'return_period_days',
+            'weight', 'length', 'width', 'height',
             'hsn_code', 'gst_percentage'
         ]);
 

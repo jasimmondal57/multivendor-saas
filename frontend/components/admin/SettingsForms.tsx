@@ -76,6 +76,10 @@ export default function SettingsForms({ activeTab, onTabChange }: SettingsFormsP
     internationalShippingEnabled: false,
     estimatedDeliveryDays: 7,
     trackingEnabled: true,
+    returnPolicyEnabled: true,
+    defaultReturnPeriodDays: 7,
+    returnShippingPaidBy: 'customer', // 'customer' or 'vendor' or 'platform'
+    refundProcessingDays: 5,
   });
 
   // Tax Settings State
@@ -547,33 +551,124 @@ export default function SettingsForms({ activeTab, onTabChange }: SettingsFormsP
       {/* Shipping & Tax Settings - Simplified versions */}
       {activeTab === 'shipping' && (
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Shipping Settings</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Free Shipping Threshold (₹)</label>
-              <input
-                type="number"
-                value={shippingSettings.freeShippingThreshold}
-                onChange={(e) => setShippingSettings({ ...shippingSettings, freeShippingThreshold: Number(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Default Shipping Charge (₹)</label>
-              <input
-                type="number"
-                value={shippingSettings.defaultShippingCharge}
-                onChange={(e) => setShippingSettings({ ...shippingSettings, defaultShippingCharge: Number(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Shipping & Return Settings</h3>
+
+          {/* Shipping Settings */}
+          <div className="mb-8">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Shipping Configuration</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Free Shipping Threshold (₹)</label>
+                <input
+                  type="number"
+                  value={shippingSettings.freeShippingThreshold}
+                  onChange={(e) => setShippingSettings({ ...shippingSettings, freeShippingThreshold: Number(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Default Shipping Charge (₹)</label>
+                <input
+                  type="number"
+                  value={shippingSettings.defaultShippingCharge}
+                  onChange={(e) => setShippingSettings({ ...shippingSettings, defaultShippingCharge: Number(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Delivery Days</label>
+                <input
+                  type="number"
+                  value={shippingSettings.estimatedDeliveryDays}
+                  onChange={(e) => setShippingSettings({ ...shippingSettings, estimatedDeliveryDays: Number(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
             </div>
           </div>
+
+          {/* Return Policy Settings */}
+          <div className="border-t pt-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Return Policy Configuration</h4>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> These return policy settings will apply to all products across the platform.
+                Vendors cannot modify return periods individually.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <h5 className="font-semibold text-gray-900">Enable Return Policy</h5>
+                  <p className="text-sm text-gray-600">Allow customers to return products</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={shippingSettings.returnPolicyEnabled}
+                    onChange={(e) => setShippingSettings({ ...shippingSettings, returnPolicyEnabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                </label>
+              </div>
+
+              {shippingSettings.returnPolicyEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Default Return Period (Days) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="90"
+                      value={shippingSettings.defaultReturnPeriodDays}
+                      onChange={(e) => setShippingSettings({ ...shippingSettings, defaultReturnPeriodDays: Number(e.target.value) })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Applies to all products (0-90 days)</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Return Shipping Paid By
+                    </label>
+                    <select
+                      value={shippingSettings.returnShippingPaidBy}
+                      onChange={(e) => setShippingSettings({ ...shippingSettings, returnShippingPaidBy: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    >
+                      <option value="customer">Customer</option>
+                      <option value="vendor">Vendor</option>
+                      <option value="platform">Platform</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Refund Processing Days
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={shippingSettings.refundProcessingDays}
+                      onChange={(e) => setShippingSettings({ ...shippingSettings, refundProcessingDays: Number(e.target.value) })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Days to process refund after return</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="mt-6 flex justify-end">
             <button
               onClick={handleSaveShipping}
               className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
             >
-              Save Shipping Settings
+              Save Shipping & Return Settings
             </button>
           </div>
         </div>

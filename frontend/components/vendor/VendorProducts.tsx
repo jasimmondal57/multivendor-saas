@@ -49,8 +49,6 @@ interface ProductFormData {
   weight: string;
   hsn_code: string;
   gst_percentage: string;
-  is_returnable: boolean;
-  return_period_days: string;
 }
 
 export default function VendorProducts() {
@@ -95,8 +93,6 @@ export default function VendorProducts() {
     weight: '',
     hsn_code: '',
     gst_percentage: '18',
-    is_returnable: true,
-    return_period_days: '7',
   });
 
   useEffect(() => {
@@ -178,8 +174,6 @@ export default function VendorProducts() {
         weight: product.weight?.toString() || '',
         hsn_code: product.hsn_code || '',
         gst_percentage: product.gst_percentage?.toString() || '18',
-        is_returnable: product.is_returnable ?? true,
-        return_period_days: product.return_period_days?.toString() || '7',
       });
     } else {
       setEditingProduct(null);
@@ -198,8 +192,6 @@ export default function VendorProducts() {
         weight: '',
         hsn_code: '',
         gst_percentage: '18',
-        is_returnable: true,
-        return_period_days: '7',
       });
     }
     setShowModal(true);
@@ -331,7 +323,6 @@ export default function VendorProducts() {
         low_stock_threshold: parseInt(formData.low_stock_threshold),
         weight: formData.weight ? parseFloat(formData.weight) : undefined,
         gst_percentage: parseFloat(formData.gst_percentage),
-        return_period_days: parseInt(formData.return_period_days),
       };
 
       if (editingProduct) {
@@ -1157,30 +1148,21 @@ export default function VendorProducts() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Return Period (days)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.return_period_days}
-                      onChange={(e) => setFormData({ ...formData, return_period_days: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="7"
-                    />
-                  </div>
-
                   <div className="md:col-span-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.is_returnable}
-                        onChange={(e) => setFormData({ ...formData, is_returnable: e.target.checked })}
-                        className="w-4 h-4 text-blue-600 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">Product is returnable</span>
-                    </label>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <h4 className="text-sm font-semibold text-blue-900 mb-1">Return Policy Information</h4>
+                          <p className="text-sm text-blue-800">
+                            Return policy is managed by the platform admin. All products follow the platform-wide return policy
+                            configured in Admin Settings → Shipping & Return Settings.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
