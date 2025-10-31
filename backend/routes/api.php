@@ -187,8 +187,8 @@ Route::prefix('v1')->group(function () {
 
             // Orders
             Route::get('orders', [VendorOrderController::class, 'index']);
+            Route::get('orders/statistics', [VendorOrderController::class, 'statistics']); // Must be before {id} route
             Route::get('orders/{id}', [VendorOrderController::class, 'show']);
-            Route::get('orders/statistics', [VendorOrderController::class, 'statistics']);
             Route::put('orders/{orderId}/items/{itemId}/status', [VendorOrderController::class, 'updateItemStatus']);
             Route::post('orders/{id}/ready-for-pickup', [VendorOrderController::class, 'readyForPickup']);
 
