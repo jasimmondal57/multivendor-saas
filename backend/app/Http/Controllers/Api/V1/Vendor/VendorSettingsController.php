@@ -6,10 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Vendor;
 use App\Models\VendorStore;
 use App\Models\VendorBankAccount;
+use App\Models\OtpVerification;
+use App\Services\OtpService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class VendorSettingsController extends Controller
 {
+    protected $otpService;
+
+    public function __construct(OtpService $otpService)
+    {
+        $this->otpService = $otpService;
+    }
     /**
      * Get vendor profile
      */
@@ -69,25 +79,60 @@ class VendorSettingsController extends Controller
             ], 404);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'new_email' => 'required|email|unique:users,email',
         ]);
 
-        // Generate OTP for old email
-        $oldOtp = rand(100000, 999999);
+        try {
+            // Generate OTP for old email
+            $oldOtp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        // Store OTP in session or cache
-        cache()->put('email_change_old_otp_' . $request->user()->id, $oldOtp, now()->addMinutes(10));
-        cache()->put('email_change_new_email_' . $request->user()->id, $request->new_email, now()->addMinutes(10));
+            // Store OTP and new email in cache
+            cache()->put('email_change_old_otp_' . $request->user()->id, $oldOtp, now()->addMinutes(10));
+            cache()->put('email_change_new_email_' . $request->user()->id, $validated['new_email'], now()->addMinutes(10));
 
-        // TODO: Send OTP to old email via email service
-        // For now, return OTP in response (remove in production)
+            // Send OTP to old email
+            $oldEmail = $request->user()->email;
+            Mail::send([], [], function ($message) use ($oldEmail, $oldOtp, $vendor) {
+                $message->to($oldEmail)
+                    ->subject('Email Change Verification - OTP')
+                    ->html("
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                            <h2 style='color: #2563eb;'>Email Change Verification</h2>
+                            <p>Hello {$vendor->business_name},</p>
+                            <p>You have requested to change your email address. Please use the OTP below to verify your current email:</p>
+                            <div style='background: #f3f4f6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;'>
+                                <h1 style='color: #1f2937; margin: 0; font-size: 32px; letter-spacing: 8px;'>{$oldOtp}</h1>
+                            </div>
+                            <p style='color: #6b7280;'>This OTP will expire in 10 minutes.</p>
+                            <p style='color: #6b7280;'>If you did not request this change, please ignore this email.</p>
+                            <hr style='border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;'>
+                            <p style='color: #9ca3af; font-size: 12px;'>This is an automated email. Please do not reply.</p>
+                        </div>
+                    ");
+            });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'OTP sent to your current email address',
-            'debug_otp' => $oldOtp, // Remove in production
-        ]);
+            Log::info('Email change OTP sent to old email', [
+                'user_id' => $request->user()->id,
+                'old_email' => $oldEmail,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP sent to your current email address',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send email change OTP', [
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP. Please try again.',
+            ], 500);
+        }
     }
 
     /**
@@ -104,32 +149,74 @@ class VendorSettingsController extends Controller
             ], 404);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'otp' => 'required|string|size:6',
         ]);
 
         $cachedOtp = cache()->get('email_change_old_otp_' . $request->user()->id);
 
-        if (!$cachedOtp || $cachedOtp != $request->otp) {
+        if (!$cachedOtp || $cachedOtp != $validated['otp']) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired OTP',
             ], 422);
         }
 
-        // Generate OTP for new email
-        $newOtp = rand(100000, 999999);
-        $newEmail = cache()->get('email_change_new_email_' . $request->user()->id);
+        try {
+            // Generate OTP for new email
+            $newOtp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $newEmail = cache()->get('email_change_new_email_' . $request->user()->id);
 
-        cache()->put('email_change_new_otp_' . $request->user()->id, $newOtp, now()->addMinutes(10));
+            if (!$newEmail) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Session expired. Please start again.',
+                ], 422);
+            }
 
-        // TODO: Send OTP to new email via email service
+            cache()->put('email_change_new_otp_' . $request->user()->id, $newOtp, now()->addMinutes(10));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Old email verified. OTP sent to new email address',
-            'debug_otp' => $newOtp, // Remove in production
-        ]);
+            // Send OTP to new email
+            Mail::send([], [], function ($message) use ($newEmail, $newOtp, $vendor) {
+                $message->to($newEmail)
+                    ->subject('Email Change Verification - OTP')
+                    ->html("
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                            <h2 style='color: #2563eb;'>Email Change Verification</h2>
+                            <p>Hello {$vendor->business_name},</p>
+                            <p>Please use the OTP below to verify your new email address:</p>
+                            <div style='background: #f3f4f6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;'>
+                                <h1 style='color: #1f2937; margin: 0; font-size: 32px; letter-spacing: 8px;'>{$newOtp}</h1>
+                            </div>
+                            <p style='color: #6b7280;'>This OTP will expire in 10 minutes.</p>
+                            <p style='color: #6b7280;'>After verification, this will become your new email address.</p>
+                            <hr style='border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;'>
+                            <p style='color: #9ca3af; font-size: 12px;'>This is an automated email. Please do not reply.</p>
+                        </div>
+                    ");
+            });
+
+            Log::info('Email change OTP sent to new email', [
+                'user_id' => $request->user()->id,
+                'new_email' => $newEmail,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Old email verified. OTP sent to new email address',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send OTP to new email', [
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP. Please try again.',
+            ], 500);
+        }
     }
 
     /**
@@ -189,24 +276,47 @@ class VendorSettingsController extends Controller
             ], 404);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'new_phone' => 'required|string|max:15|unique:users,phone',
         ]);
 
-        // Generate OTP for old phone
-        $oldOtp = rand(100000, 999999);
+        try {
+            $oldPhone = $request->user()->phone;
 
-        // Store OTP in cache
-        cache()->put('phone_change_old_otp_' . $request->user()->id, $oldOtp, now()->addMinutes(10));
-        cache()->put('phone_change_new_phone_' . $request->user()->id, $request->new_phone, now()->addMinutes(10));
+            // Store new phone in cache
+            cache()->put('phone_change_new_phone_' . $request->user()->id, $validated['new_phone'], now()->addMinutes(10));
 
-        // TODO: Send WhatsApp OTP to old phone
+            // Send OTP via WhatsApp to old phone using OtpService
+            $result = $this->otpService->sendOtp($oldPhone, 'phone_change_old', 'whatsapp');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'WhatsApp OTP sent to your current phone number',
-            'debug_otp' => $oldOtp, // Remove in production
-        ]);
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['error'] ?? 'Failed to send WhatsApp OTP',
+                ], 500);
+            }
+
+            Log::info('Phone change OTP sent to old phone', [
+                'user_id' => $request->user()->id,
+                'old_phone' => $oldPhone,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'WhatsApp OTP sent to your current phone number',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send phone change OTP', [
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send WhatsApp OTP. Please try again.',
+            ], 500);
+        }
     }
 
     /**
@@ -223,32 +333,64 @@ class VendorSettingsController extends Controller
             ], 404);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'otp' => 'required|string|size:6',
         ]);
 
-        $cachedOtp = cache()->get('phone_change_old_otp_' . $request->user()->id);
+        try {
+            $oldPhone = $request->user()->phone;
 
-        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            // Verify OTP using OtpService
+            $result = $this->otpService->verifyOtp($oldPhone, $validated['otp'], 'phone_change_old');
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['error'] ?? 'Invalid or expired OTP',
+                ], 422);
+            }
+
+            // Get new phone from cache
+            $newPhone = cache()->get('phone_change_new_phone_' . $request->user()->id);
+
+            if (!$newPhone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Session expired. Please start again.',
+                ], 422);
+            }
+
+            // Send OTP to new phone via WhatsApp
+            $newOtpResult = $this->otpService->sendOtp($newPhone, 'phone_change_new', 'whatsapp');
+
+            if (!$newOtpResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $newOtpResult['error'] ?? 'Failed to send WhatsApp OTP to new phone',
+                ], 500);
+            }
+
+            Log::info('Phone change OTP sent to new phone', [
+                'user_id' => $request->user()->id,
+                'new_phone' => $newPhone,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Old phone verified. WhatsApp OTP sent to new phone number',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to verify old phone OTP', [
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid or expired OTP',
-            ], 422);
+                'message' => 'Failed to verify OTP. Please try again.',
+            ], 500);
         }
-
-        // Generate OTP for new phone
-        $newOtp = rand(100000, 999999);
-        $newPhone = cache()->get('phone_change_new_phone_' . $request->user()->id);
-
-        cache()->put('phone_change_new_otp_' . $request->user()->id, $newOtp, now()->addMinutes(10));
-
-        // TODO: Send WhatsApp OTP to new phone
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Old phone verified. WhatsApp OTP sent to new phone number',
-            'debug_otp' => $newOtp, // Remove in production
-        ]);
     }
 
     /**
@@ -265,33 +407,59 @@ class VendorSettingsController extends Controller
             ], 404);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'otp' => 'required|string|size:6',
         ]);
 
-        $cachedOtp = cache()->get('phone_change_new_otp_' . $request->user()->id);
-        $newPhone = cache()->get('phone_change_new_phone_' . $request->user()->id);
+        try {
+            // Get new phone from cache
+            $newPhone = cache()->get('phone_change_new_phone_' . $request->user()->id);
 
-        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            if (!$newPhone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Session expired. Please start again.',
+                ], 422);
+            }
+
+            // Verify OTP using OtpService
+            $result = $this->otpService->verifyOtp($newPhone, $validated['otp'], 'phone_change_new');
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['error'] ?? 'Invalid or expired OTP',
+                ], 422);
+            }
+
+            // Update phone
+            $request->user()->update(['phone' => $newPhone]);
+
+            // Clear cache
+            cache()->forget('phone_change_new_phone_' . $request->user()->id);
+
+            Log::info('Phone number updated successfully', [
+                'user_id' => $request->user()->id,
+                'new_phone' => $newPhone,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Phone number updated successfully',
+                'data' => $vendor->fresh(['user']),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to verify new phone OTP', [
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid or expired OTP',
-            ], 422);
+                'message' => 'Failed to verify OTP. Please try again.',
+            ], 500);
         }
-
-        // Update phone
-        $request->user()->update(['phone' => $newPhone]);
-
-        // Clear cache
-        cache()->forget('phone_change_old_otp_' . $request->user()->id);
-        cache()->forget('phone_change_new_otp_' . $request->user()->id);
-        cache()->forget('phone_change_new_phone_' . $request->user()->id);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Phone number updated successfully',
-            'data' => $vendor->fresh(['user']),
-        ]);
     }
 
     /**

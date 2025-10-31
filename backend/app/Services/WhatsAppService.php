@@ -37,18 +37,48 @@ class WhatsAppService
                 throw new \Exception("Template not found: {$templateCode}");
             }
 
-            if (!$template->meta_template_name) {
-                throw new \Exception("Template not approved by Meta: {$templateCode}");
-            }
-
             // Format phone number (add country code if not present)
             $phone = $this->formatPhoneNumber($phone);
 
-            // Send via Meta WhatsApp Cloud API
-            $response = $this->sendViaMetaAPI($phone, $template, $variables);
-
             // Render message for logging
             $message = $template->render($variables);
+
+            // Check if template is approved by Meta
+            if (!$template->meta_template_name || $template->status === 'draft') {
+                // Development mode: Log the message instead of sending
+                Log::info('WhatsApp OTP (Development Mode)', [
+                    'phone' => $phone,
+                    'template' => $templateCode,
+                    'message' => $message,
+                    'variables' => $variables,
+                ]);
+
+                // Log the message
+                $log = WhatsAppLog::create([
+                    'user_id' => $userId,
+                    'whatsapp_template_id' => $template->id,
+                    'phone' => $phone,
+                    'template_code' => $templateCode,
+                    'message' => $message,
+                    'variables' => $variables,
+                    'status' => 'sent', // Mark as sent in dev mode
+                    'message_id' => 'dev_' . uniqid(),
+                    'error_message' => null,
+                    'response' => ['dev_mode' => true, 'message' => $message],
+                    'sent_at' => now(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'message_id' => 'dev_' . uniqid(),
+                    'log_id' => $log->id,
+                    'dev_mode' => true,
+                    'message' => $message,
+                ];
+            }
+
+            // Send via Meta WhatsApp Cloud API
+            $response = $this->sendViaMetaAPI($phone, $template, $variables);
 
             // Log the message
             $log = WhatsAppLog::create([

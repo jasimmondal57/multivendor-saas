@@ -165,7 +165,7 @@ export default function VendorSettings() {
     try {
       const response = await api.post('/v1/vendor/settings/email/request-change', { new_email: newEmail });
       if (response.data.success) {
-        alert(`OTP sent to your current email. Debug OTP: ${response.data.debug_otp}`);
+        alert('OTP sent to your current email address. Please check your inbox.');
         setEmailChangeStep(2);
       }
     } catch (error: any) {
@@ -184,7 +184,7 @@ export default function VendorSettings() {
     try {
       const response = await api.post('/v1/vendor/settings/email/verify-old', { otp: oldEmailOtp });
       if (response.data.success) {
-        alert(`Old email verified! OTP sent to new email. Debug OTP: ${response.data.debug_otp}`);
+        alert('Old email verified! OTP sent to your new email address. Please check your inbox.');
         setEmailChangeStep(3);
       }
     } catch (error: any) {
@@ -228,7 +228,7 @@ export default function VendorSettings() {
     try {
       const response = await api.post('/v1/vendor/settings/phone/request-change', { new_phone: newPhone });
       if (response.data.success) {
-        alert(`WhatsApp OTP sent to your current phone. Debug OTP: ${response.data.debug_otp}`);
+        alert('WhatsApp OTP sent to your current phone number. Please check your WhatsApp.');
         setPhoneChangeStep(2);
       }
     } catch (error: any) {
@@ -247,7 +247,7 @@ export default function VendorSettings() {
     try {
       const response = await api.post('/v1/vendor/settings/phone/verify-old', { otp: oldPhoneOtp });
       if (response.data.success) {
-        alert(`Old phone verified! WhatsApp OTP sent to new phone. Debug OTP: ${response.data.debug_otp}`);
+        alert('Old phone verified! WhatsApp OTP sent to your new phone number. Please check your WhatsApp.');
         setPhoneChangeStep(3);
       }
     } catch (error: any) {
