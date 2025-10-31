@@ -207,8 +207,10 @@ class DemoDataSeeder extends Seeder
                 'stock_quantity' => $prod['stock'],
                 'stock_status' => 'in_stock',
                 'gst_percentage' => 18,
-                'status' => 'active',
+                'status' => 'approved',
+                'is_active' => true,
                 'is_featured' => true,
+                'approved_at' => now(),
             ]);
         }
 
@@ -235,8 +237,10 @@ class DemoDataSeeder extends Seeder
                 'stock_quantity' => $prod['stock'],
                 'stock_status' => 'in_stock',
                 'gst_percentage' => 12,
-                'status' => 'active',
+                'status' => 'approved',
+                'is_active' => true,
                 'is_featured' => true,
+                'approved_at' => now(),
             ]);
         }
 
@@ -263,8 +267,10 @@ class DemoDataSeeder extends Seeder
                 'stock_quantity' => $prod['stock'],
                 'stock_status' => 'in_stock',
                 'gst_percentage' => 18,
-                'status' => 'active',
+                'status' => 'approved',
+                'is_active' => true,
                 'is_featured' => false,
+                'approved_at' => now(),
             ]);
         }
 

@@ -37,6 +37,9 @@ class Product extends Model
         'hsn_code',
         'gst_percentage',
         'status',
+        'is_active',
+        'approved_at',
+        'approved_by',
         'ban_reason',
         'banned_at',
         'banned_by',
@@ -56,10 +59,13 @@ class Product extends Model
         'discount_percentage' => 'decimal:2',
         'gst_percentage' => 'decimal:2',
         'is_returnable' => 'boolean',
+        'is_active' => 'boolean',
         'is_featured' => 'boolean',
         'is_trending' => 'boolean',
         'meta_data' => 'array',
         'rating' => 'decimal:2',
+        'approved_at' => 'datetime',
+        'banned_at' => 'datetime',
     ];
 
     protected static function boot()
