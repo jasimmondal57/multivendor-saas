@@ -406,11 +406,11 @@ class DemoDataSeeder extends Seeder
         foreach ($vendorModels as $vendorData) {
             $vendor = $vendorData['vendor'];
 
-            // Get all delivered orders for this vendor from last month
+            // ===== LAST MONTH PAYOUT (COMPLETED) =====
             $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
             $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();
 
-            $vendorOrders = Order::where('status', 'delivered')
+            $lastMonthOrders = Order::where('status', 'delivered')
                 ->where('delivered_at', '>=', $lastMonthStart)
                 ->where('delivered_at', '<=', $lastMonthEnd)
                 ->whereHas('items', function($query) use ($vendor) {
@@ -418,18 +418,18 @@ class DemoDataSeeder extends Seeder
                 })
                 ->get();
 
-            if ($vendorOrders->count() > 0) {
+            if ($lastMonthOrders->count() > 0) {
                 $totalSales = 0;
                 $orderIds = [];
 
-                foreach ($vendorOrders as $order) {
+                foreach ($lastMonthOrders as $order) {
                     $vendorItems = $order->items()->where('vendor_id', $vendor->id)->get();
                     $totalSales += $vendorItems->sum('total_amount');
                     $orderIds[] = $order->id;
                 }
 
                 // Calculate commission
-                $commissionRate = $vendor->commission_rate ?? 10; // Default 10% if not set
+                $commissionRate = $vendor->commission_rate ?? 10;
                 $platformCommission = ($totalSales * $commissionRate) / 100;
 
                 // Calculate GST on commission (18%)
@@ -459,7 +459,7 @@ class DemoDataSeeder extends Seeder
                     'tds_rate' => $tdsRate,
                     'adjustment_amount' => 0,
                     'net_amount' => $netAmount,
-                    'total_orders' => $vendorOrders->count(),
+                    'total_orders' => $lastMonthOrders->count(),
                     'order_ids' => $orderIds,
                     'status' => 'completed',
                     'payment_method' => 'bank_transfer',
@@ -483,8 +483,8 @@ class DemoDataSeeder extends Seeder
                     'source_id' => $payout->id,
                     'vendor_id' => $vendor->id,
                     'vendor_name' => $vendor->business_name,
-                    'order_id' => $vendorOrders->first()->id,
-                    'order_number' => $vendorOrders->first()->order_number,
+                    'order_id' => $lastMonthOrders->first()->id,
+                    'order_number' => $lastMonthOrders->first()->order_number,
                     'vendor_payout_id' => $payout->id,
                     'payout_number' => $payout->payout_number,
                     'gross_amount' => $totalSales,
@@ -502,7 +502,83 @@ class DemoDataSeeder extends Seeder
                     'description' => 'Commission from ' . $vendor->business_name . ' for ' . $lastMonthStart->format('F Y'),
                 ]);
 
-                $this->command->info("  ✓ Created payout for {$vendor->business_name}: ₹{$netAmount} (TDS: ₹{$tdsAmount})");
+                $this->command->info("  ✓ Created completed payout for {$vendor->business_name}: ₹{$netAmount} (TDS: ₹{$tdsAmount})");
+            }
+
+            // ===== THIS MONTH PAYOUT (PENDING) =====
+            $thisMonthStart = Carbon::now()->startOfMonth();
+            $thisMonthEnd = Carbon::now()->endOfMonth();
+
+            $thisMonthOrders = Order::where('status', 'delivered')
+                ->where('delivered_at', '>=', $thisMonthStart)
+                ->where('delivered_at', '<=', Carbon::now())
+                ->whereHas('items', function($query) use ($vendor) {
+                    $query->where('vendor_id', $vendor->id);
+                })
+                ->get();
+
+            if ($thisMonthOrders->count() > 0) {
+                $totalSales = 0;
+                $orderIds = [];
+
+                foreach ($thisMonthOrders as $order) {
+                    $vendorItems = $order->items()->where('vendor_id', $vendor->id)->get();
+                    $totalSales += $vendorItems->sum('total_amount');
+                    $orderIds[] = $order->id;
+                }
+
+                // Calculate commission
+                $commissionRate = $vendor->commission_rate ?? 10;
+                $platformCommission = ($totalSales * $commissionRate) / 100;
+
+                // Calculate GST on commission (18%)
+                $commissionGst = ($platformCommission * 18) / 100;
+                $totalCommissionWithGst = $platformCommission + $commissionGst;
+
+                // Calculate TDS (1% for vendors with PAN, 5% without)
+                $tdsRate = $vendor->pan_number ? 1 : 5;
+                $tdsAmount = ($totalSales * $tdsRate) / 100;
+
+                // Net amount = Total Sales - Commission - Commission GST - TDS
+                $netAmount = $totalSales - $totalCommissionWithGst - $tdsAmount;
+
+                $bankAccount = $vendor->bankAccount;
+
+                // Get latest delivery date for scheduled payout calculation
+                $latestDeliveryDate = $thisMonthOrders->max('delivered_at');
+                $earliestDeliveryDate = $thisMonthOrders->min('delivered_at');
+
+                // Calculate scheduled payout date (delivery + 30 days return period + 1 day)
+                $scheduledPayoutDate = Carbon::parse($latestDeliveryDate)->addDays(31);
+
+                VendorPayout::create([
+                    'vendor_id' => $vendor->id,
+                    'period_start' => $thisMonthStart,
+                    'period_end' => $thisMonthEnd,
+                    'scheduled_payout_date' => $scheduledPayoutDate,
+                    'earliest_delivery_date' => $earliestDeliveryDate,
+                    'latest_delivery_date' => $latestDeliveryDate,
+                    'total_sales' => $totalSales,
+                    'platform_commission' => $platformCommission,
+                    'commission_rate' => $commissionRate,
+                    'commission_gst' => $commissionGst,
+                    'commission_gst_rate' => 18,
+                    'total_commission_with_gst' => $totalCommissionWithGst,
+                    'tds_amount' => $tdsAmount,
+                    'tds_rate' => $tdsRate,
+                    'adjustment_amount' => 0,
+                    'net_amount' => $netAmount,
+                    'total_orders' => $thisMonthOrders->count(),
+                    'order_ids' => $orderIds,
+                    'status' => 'pending',
+                    'account_holder_name' => $bankAccount->account_holder_name,
+                    'account_number' => $bankAccount->account_number,
+                    'ifsc_code' => $bankAccount->ifsc_code,
+                    'bank_name' => $bankAccount->bank_name,
+                    'admin_notes' => 'Pending payout for ' . $thisMonthStart->format('F Y'),
+                ]);
+
+                $this->command->info("  ✓ Created pending payout for {$vendor->business_name}: ₹{$netAmount} (Scheduled: {$scheduledPayoutDate->format('Y-m-d')})");
             }
         }
 
