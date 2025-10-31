@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ReturnTrackingHistory extends Model
 {
+    protected $table = 'return_tracking_history';
+
     protected $fillable = [
         'return_order_id',
         'status',

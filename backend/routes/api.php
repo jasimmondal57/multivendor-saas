@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\ImageUploadController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\Vendor\VendorOrderController;
 use App\Http\Controllers\Api\V1\Vendor\VendorReturnController;
+use App\Http\Controllers\Api\V1\Customer\CustomerReturnController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\WishlistController;
 use App\Http\Controllers\Api\V1\CouponController;
@@ -101,6 +102,15 @@ Route::prefix('v1')->group(function () {
             Route::post('orders', [OrderController::class, 'store']);
             Route::post('orders/{id}/cancel', [OrderController::class, 'cancel']);
             Route::get('orders/{id}/track', [OrderController::class, 'track']);
+
+            // Return Orders
+            Route::get('returns/statistics', [CustomerReturnController::class, 'statistics']);
+            Route::get('returns/eligible-orders', [CustomerReturnController::class, 'getEligibleOrders']);
+            Route::get('returns', [CustomerReturnController::class, 'index']);
+            Route::get('returns/{id}', [CustomerReturnController::class, 'show']);
+            Route::post('returns', [CustomerReturnController::class, 'store']);
+            Route::post('returns/{id}/cancel', [CustomerReturnController::class, 'cancel']);
+            Route::get('returns/{id}/timeline', [CustomerReturnController::class, 'getTimeline']);
 
             // Reviews
             Route::get('reviews', [ReviewController::class, 'myReviews']);
