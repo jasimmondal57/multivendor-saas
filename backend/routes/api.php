@@ -23,6 +23,10 @@ use App\Http\Controllers\Api\V1\Admin\WhatsAppController;
 use App\Http\Controllers\Api\Admin\EventTriggerController;
 use App\Http\Controllers\Api\V1\OtpController;
 use App\Http\Controllers\Api\V1\WhatsAppWebhookController;
+use App\Http\Controllers\Api\Admin\PageController as AdminPageController;
+use App\Http\Controllers\Api\Admin\BannerController;
+use App\Http\Controllers\Api\Admin\MenuController;
+use App\Http\Controllers\Api\V1\PageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +52,16 @@ Route::prefix('v1')->group(function () {
     Route::get('products', [ProductController::class, 'index']);
     Route::get('products/featured', [ProductController::class, 'featured']);
     Route::get('products/{slug}', [ProductController::class, 'show']);
+
+    // Public page builder routes
+    Route::prefix('pages')->group(function () {
+        Route::get('homepage', [PageController::class, 'getHomepage']);
+        Route::get('{slug}', [PageController::class, 'getBySlug']);
+    });
+
+    Route::get('banners', [PageController::class, 'getBanners']);
+    Route::post('banners/{id}/track-click', [PageController::class, 'trackBannerClick']);
+    Route::get('menus/{location}', [PageController::class, 'getMenu']);
     Route::get('categories', [ProductController::class, 'categories']);
 
     // Public review routes
@@ -268,6 +282,52 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{payout}/process', [\App\Http\Controllers\Api\V1\Admin\PayoutController::class, 'process']);
                 Route::post('/{payout}/complete', [\App\Http\Controllers\Api\V1\Admin\PayoutController::class, 'complete']);
                 Route::post('/{payout}/fail', [\App\Http\Controllers\Api\V1\Admin\PayoutController::class, 'fail']);
+            });
+
+            // Page Builder Management
+            Route::prefix('pages')->group(function () {
+                Route::get('/', [AdminPageController::class, 'index']);
+                Route::post('/', [AdminPageController::class, 'store']);
+                Route::get('/{id}', [AdminPageController::class, 'show']);
+                Route::put('/{id}', [AdminPageController::class, 'update']);
+                Route::delete('/{id}', [AdminPageController::class, 'destroy']);
+                Route::post('/{id}/publish', [AdminPageController::class, 'publish']);
+                Route::post('/{id}/unpublish', [AdminPageController::class, 'unpublish']);
+                Route::post('/{id}/duplicate', [AdminPageController::class, 'duplicate']);
+
+                // Page Sections
+                Route::get('/{pageId}/sections', [AdminPageController::class, 'getSections']);
+                Route::post('/{pageId}/sections', [AdminPageController::class, 'addSection']);
+                Route::put('/{pageId}/sections/{sectionId}', [AdminPageController::class, 'updateSection']);
+                Route::delete('/{pageId}/sections/{sectionId}', [AdminPageController::class, 'deleteSection']);
+                Route::post('/{pageId}/sections/reorder', [AdminPageController::class, 'reorderSections']);
+            });
+
+            // Banner Management
+            Route::prefix('banners')->group(function () {
+                Route::get('/', [BannerController::class, 'index']);
+                Route::post('/', [BannerController::class, 'store']);
+                Route::get('/analytics', [BannerController::class, 'analytics']);
+                Route::get('/{id}', [BannerController::class, 'show']);
+                Route::put('/{id}', [BannerController::class, 'update']);
+                Route::delete('/{id}', [BannerController::class, 'destroy']);
+                Route::post('/{id}/track-click', [BannerController::class, 'trackClick']);
+            });
+
+            // Menu Management
+            Route::prefix('menus')->group(function () {
+                Route::get('/', [MenuController::class, 'index']);
+                Route::post('/', [MenuController::class, 'store']);
+                Route::get('/{id}', [MenuController::class, 'show']);
+                Route::put('/{id}', [MenuController::class, 'update']);
+                Route::delete('/{id}', [MenuController::class, 'destroy']);
+
+                // Menu Items
+                Route::get('/{menuId}/items', [MenuController::class, 'getItems']);
+                Route::post('/{menuId}/items', [MenuController::class, 'addItem']);
+                Route::put('/{menuId}/items/{itemId}', [MenuController::class, 'updateItem']);
+                Route::delete('/{menuId}/items/{itemId}', [MenuController::class, 'deleteItem']);
+                Route::post('/{menuId}/items/reorder', [MenuController::class, 'reorderItems']);
             });
         });
     });
