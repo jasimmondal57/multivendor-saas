@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\V1\PageController;
 use App\Http\Controllers\Api\V1\Customer\CustomerSupportController;
 use App\Http\Controllers\Api\V1\Vendor\VendorSupportController;
 use App\Http\Controllers\Api\Admin\AdminSupportController;
+use App\Http\Controllers\Api\Admin\SupportCategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -535,6 +536,12 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
         Route::post('tickets/{id}/messages', [AdminSupportController::class, 'sendMessage']);
         Route::post('tickets/{id}/resolve', [AdminSupportController::class, 'resolve']);
         Route::get('admins', [AdminSupportController::class, 'getAdmins']);
+
+        // Category management
+        Route::get('categories', [SupportCategoryController::class, 'index']);
+        Route::post('categories', [SupportCategoryController::class, 'store']);
+        Route::put('categories/{id}', [SupportCategoryController::class, 'update']);
+        Route::delete('categories/{id}', [SupportCategoryController::class, 'destroy']);
     });
 });
 

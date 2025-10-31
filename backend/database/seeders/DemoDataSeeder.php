@@ -695,12 +695,17 @@ class DemoDataSeeder extends Seeder
         // Vendor Tickets
         $vendorCategories = SupportCategory::forVendor()->get();
 
+        // Get vendor users
+        $vendor1User = $vendorModels[0]['vendor']->user;
+        $vendor2User = $vendorModels[1]['vendor']->user;
+        $vendor3User = $vendorModels[2]['vendor']->user;
+
         // Ticket 4: Vendor - Payout Issue (Open)
         $ticket4 = SupportTicket::create([
             'ticket_number' => SupportTicket::generateTicketNumber(),
-            'user_id' => $vendorUsers[0]->id,
+            'user_id' => $vendor1User->id,
             'user_type' => 'vendor',
-            'vendor_id' => $vendorModels[0]->id,
+            'vendor_id' => $vendorModels[0]['vendor']->id,
             'support_category_id' => $vendorCategories->where('slug', 'payout-issues')->first()->id,
             'subject' => 'Payout amount mismatch',
             'description' => 'The payout I received is less than expected. Can you please provide a detailed breakdown?',
@@ -716,9 +721,9 @@ class DemoDataSeeder extends Seeder
         // Ticket 5: Vendor - Product Listing (Resolved)
         $ticket5 = SupportTicket::create([
             'ticket_number' => SupportTicket::generateTicketNumber(),
-            'user_id' => $vendorUsers[1]->id,
+            'user_id' => $vendor2User->id,
             'user_type' => 'vendor',
-            'vendor_id' => $vendorModels[1]->id,
+            'vendor_id' => $vendorModels[1]['vendor']->id,
             'support_category_id' => $vendorCategories->where('slug', 'product-listing')->first()->id,
             'subject' => 'Product approval pending',
             'description' => 'I uploaded a new product 3 days ago but it\'s still pending approval.',
@@ -750,9 +755,9 @@ class DemoDataSeeder extends Seeder
         // Ticket 6: Vendor - Technical Issue (In Progress)
         $ticket6 = SupportTicket::create([
             'ticket_number' => SupportTicket::generateTicketNumber(),
-            'user_id' => $vendorUsers[2]->id,
+            'user_id' => $vendor3User->id,
             'user_type' => 'vendor',
-            'vendor_id' => $vendorModels[2]->id,
+            'vendor_id' => $vendorModels[2]['vendor']->id,
             'support_category_id' => $vendorCategories->where('slug', 'technical-issues')->first()->id,
             'subject' => 'Unable to upload product images',
             'description' => 'I\'m getting an error when trying to upload product images. The error says "File too large" even though the images are under 2MB.',
@@ -776,7 +781,7 @@ class DemoDataSeeder extends Seeder
 
         SupportTicketMessage::create([
             'support_ticket_id' => $ticket6->id,
-            'user_id' => $vendorUsers[2]->id,
+            'user_id' => $vendor3User->id,
             'sender_type' => 'vendor',
             'message' => 'I tried JPG format but still getting the same error.',
             'is_internal_note' => false,
@@ -785,7 +790,7 @@ class DemoDataSeeder extends Seeder
 
         $supportTickets[] = $ticket6;
 
-        $this->command->info("  ✓ Created {$supportTickets->count()} demo support tickets");
+        $this->command->info("  ✓ Created " . count($supportTickets) . " demo support tickets");
 
         $this->command->info('');
         $this->command->info('✅ Demo Data Seeding Complete!');
