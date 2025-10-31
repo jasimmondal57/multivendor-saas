@@ -91,6 +91,16 @@ class AdminReturnController extends Controller
             'completed' => ReturnOrder::whereIn('status', ['refund_completed', 'completed'])->count(),
             'total_refund_amount' => ReturnOrder::whereIn('status', ['refund_completed', 'completed'])->sum('refund_amount'),
             'pending_refund_amount' => ReturnOrder::whereIn('status', ['inspection_passed', 'refund_initiated'])->sum('refund_amount'),
+
+            // Return shipping fee statistics
+            'total_return_shipping_fees' => ReturnOrder::where('is_customer_return', true)
+                ->whereIn('status', ['refund_completed', 'completed'])
+                ->sum('return_shipping_fee'),
+            'pending_return_shipping_fees' => ReturnOrder::where('is_customer_return', true)
+                ->whereNotIn('status', ['rejected', 'cancelled', 'refund_completed', 'completed'])
+                ->sum('return_shipping_fee'),
+            'customer_initiated_returns' => ReturnOrder::where('is_customer_return', true)->count(),
+            'undelivered_returns' => ReturnOrder::where('is_customer_return', false)->count(),
         ];
 
         // Return reasons breakdown

@@ -15,6 +15,8 @@ interface ReturnOrder {
   description: string;
   quantity: number;
   refund_amount: number;
+  return_shipping_fee: number;
+  is_customer_return: boolean;
   images: string[];
   rejection_reason?: string;
   created_at: string;
@@ -53,6 +55,10 @@ interface ReturnStats {
   completed: number;
   total_refund_amount: number;
   pending_refund_amount: number;
+  total_return_shipping_fees: number;
+  pending_return_shipping_fees: number;
+  customer_initiated_returns: number;
+  undelivered_returns: number;
   reasons: { [key: string]: number };
 }
 
@@ -70,6 +76,10 @@ export default function AdminReturns() {
     completed: 0,
     total_refund_amount: 0,
     pending_refund_amount: 0,
+    total_return_shipping_fees: 0,
+    pending_return_shipping_fees: 0,
+    customer_initiated_returns: 0,
+    undelivered_returns: 0,
     reasons: {},
   });
   const [loading, setLoading] = useState(true);
@@ -294,7 +304,7 @@ export default function AdminReturns() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl shadow-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -341,6 +351,20 @@ export default function AdminReturns() {
             </div>
             <svg className="w-12 h-12 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-orange-100 text-sm font-medium">Shipping Fees</p>
+              <p className="text-3xl font-bold mt-2">{stats.customer_initiated_returns}</p>
+              <p className="text-orange-100 text-xs mt-1">{formatCurrency(stats.total_return_shipping_fees)} collected</p>
+              <p className="text-orange-100 text-xs">{formatCurrency(stats.pending_return_shipping_fees)} pending</p>
+            </div>
+            <svg className="w-12 h-12 text-orange-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
         </div>
@@ -474,7 +498,8 @@ export default function AdminReturns() {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Vendor</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Product</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Reason</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Amount</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Refund</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Shipping Fee</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
@@ -534,6 +559,21 @@ export default function AdminReturns() {
                         <span className="font-semibold text-gray-900">
                           {formatCurrency(returnOrder.refund_amount)}
                         </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        {returnOrder.is_customer_return ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-orange-600">
+                              {formatCurrency(returnOrder.return_shipping_fee)}
+                            </span>
+                            <span className="text-xs text-gray-500">Customer Return</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-gray-400">₹0</span>
+                            <span className="text-xs text-gray-500">RTO/Undelivered</span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(returnOrder.status)}`}>

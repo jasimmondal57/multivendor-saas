@@ -161,6 +161,11 @@ class CustomerReturnController extends Controller
             // Calculate refund amount
             $refundAmount = ($orderItem->price * $request->quantity);
 
+            // Calculate return shipping fee (₹150 for customer-initiated returns)
+            // No fee for undelivered/RTO orders (those are handled separately)
+            $returnShippingFee = 150.00;
+            $isCustomerReturn = true; // This is a customer-initiated return
+
             // Create return order
             $return = ReturnOrder::create([
                 'return_number' => ReturnOrder::generateReturnNumber(),
@@ -174,6 +179,8 @@ class CustomerReturnController extends Controller
                 'reason_description' => $request->reason_description,
                 'quantity' => $request->quantity,
                 'refund_amount' => $refundAmount,
+                'return_shipping_fee' => $returnShippingFee,
+                'is_customer_return' => $isCustomerReturn,
                 'status' => 'pending_approval',
                 'images' => $images,
             ]);

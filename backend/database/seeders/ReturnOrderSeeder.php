@@ -71,6 +71,10 @@ class ReturnOrderSeeder extends Seeder
                 $quantity = min($orderItem->quantity, rand(1, 2));
                 $refundAmount = $orderItem->price * $quantity;
 
+                // Determine if this is a customer-initiated return (80% chance) or RTO (20% chance)
+                $isCustomerReturn = rand(1, 100) <= 80;
+                $returnShippingFee = $isCustomerReturn ? 150.00 : 0.00;
+
                 // Create return order
                 $return = ReturnOrder::create([
                     'return_number' => ReturnOrder::generateReturnNumber(),
@@ -84,6 +88,8 @@ class ReturnOrderSeeder extends Seeder
                     'reason_description' => $this->getReasonDescription($reason),
                     'quantity' => $quantity,
                     'refund_amount' => $refundAmount,
+                    'return_shipping_fee' => $returnShippingFee,
+                    'is_customer_return' => $isCustomerReturn,
                     'status' => $status,
                     'images' => null,
                     'created_at' => now()->subDays(rand(1, 15)),

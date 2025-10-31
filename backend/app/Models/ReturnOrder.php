@@ -23,6 +23,8 @@ class ReturnOrder extends Model
         'reason_description',
         'quantity',
         'refund_amount',
+        'return_shipping_fee',
+        'is_customer_return',
         'status',
         'approved_at',
         'rejected_at',
@@ -56,8 +58,10 @@ class ReturnOrder extends Model
         'refund_initiated_at' => 'datetime',
         'refund_completed_at' => 'datetime',
         'inspection_passed' => 'boolean',
+        'is_customer_return' => 'boolean',
         'quantity' => 'integer',
         'refund_amount' => 'decimal:2',
+        'return_shipping_fee' => 'decimal:2',
     ];
 
     /**
