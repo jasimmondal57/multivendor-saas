@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\Vendor\VendorProductVariantController;
 use App\Http\Controllers\Api\V1\Vendor\VendorPayoutController;
 use App\Http\Controllers\Api\V1\Vendor\VendorSettingsController;
 use App\Http\Controllers\Api\V1\Vendor\VendorAnalyticsController;
+use App\Http\Controllers\Api\V1\Vendor\VendorNotificationController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\SettingsController;
@@ -208,6 +209,10 @@ Route::prefix('v1')->group(function () {
             Route::get('analytics/statistics', [VendorAnalyticsController::class, 'statistics']);
             Route::get('analytics/sales-trend', [VendorAnalyticsController::class, 'salesTrend']);
             Route::get('analytics/top-products', [VendorAnalyticsController::class, 'topProducts']);
+
+            // Notifications (Real-time)
+            Route::get('notifications', [VendorNotificationController::class, 'getNotifications']);
+            Route::get('notifications/stats', [VendorNotificationController::class, 'getStats']);
             Route::get('analytics/category-sales', [VendorAnalyticsController::class, 'categorySales']);
         });
 

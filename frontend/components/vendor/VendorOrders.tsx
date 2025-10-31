@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import VirtualizedOrderList from './VirtualizedOrderList';
 
 interface OrderItem {
   id: number;
@@ -36,6 +37,7 @@ export default function VendorOrders() {
   const [totalPages, setTotalPages] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const [total, setTotal] = useState(0);
+  const [useVirtualization, setUseVirtualization] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -183,15 +185,31 @@ export default function VendorOrders() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Orders</h1>
           <p className="text-gray-600">Manage and track your orders</p>
         </div>
-        <button
-          onClick={handleExportOrders}
-          className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all flex items-center"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Export CSV
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setUseVirtualization(!useVirtualization)}
+            className={`px-4 py-2 border rounded-lg transition-all flex items-center ${
+              useVirtualization
+                ? 'bg-purple-600 text-white border-purple-600'
+                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+            title={useVirtualization ? 'Disable Virtual Scrolling' : 'Enable Virtual Scrolling (Better Performance)'}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            {useVirtualization ? 'Virtual Mode' : 'Normal Mode'}
+          </button>
+          <button
+            onClick={handleExportOrders}
+            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all flex items-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -252,13 +270,29 @@ export default function VendorOrders() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow border border-gray-200">
-        {loading ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          </div>
-        ) : getFilteredOrders().length > 0 ? (
-          <div className="overflow-x-auto">
+      {loading ? (
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+      ) : getFilteredOrders().length > 0 ? (
+        useVirtualization ? (
+          <VirtualizedOrderList
+            orders={getFilteredOrders().map(order => ({
+              id: order.id,
+              order_number: order.order_number,
+              customer_name: order.customer?.name || 'N/A',
+              product_name: order.items && order.items.length > 0 ? order.items[0].product.name : 'N/A',
+              quantity: order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0,
+              total_amount: order.total_amount || 0,
+              status: order.status,
+              created_at: order.created_at,
+            }))}
+            onViewDetails={(order) => handleViewOrder(order.id)}
+            onUpdateStatus={(order) => handleViewOrder(order.id)}
+          />
+        ) : (
+          <div className="bg-white rounded-xl shadow border border-gray-200">
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -384,15 +418,16 @@ export default function VendorOrders() {
               </div>
             )}
           </div>
-        ) : (
-          <div className="p-12 text-center text-gray-500">
-            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            <p>No orders yet</p>
-          </div>
-        )}
-      </div>
+        </div>
+        )
+      ) : (
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-12 text-center text-gray-500">
+          <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          <p>No orders yet</p>
+        </div>
+      )}
 
       {/* Order Details Modal */}
       {showDetailsModal && selectedOrder && (

@@ -11,6 +11,7 @@ import VendorPayouts from '@/components/vendor/VendorPayouts';
 import VendorAnalytics from '@/components/vendor/VendorAnalytics';
 import VendorLowStockAlerts from '@/components/vendor/VendorLowStockAlerts';
 import VendorSettings from '@/components/vendor/VendorSettings';
+import VendorNotifications from '@/components/vendor/VendorNotifications';
 
 export default function VendorDashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -125,9 +126,17 @@ export default function VendorDashboardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-8 py-8">
-          {renderContent()}
+      <div className="flex-1 overflow-auto flex flex-col">
+        {/* Top Header with Notifications */}
+        <div className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-end sticky top-0 z-10">
+          <VendorNotifications />
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1">
+          <div className="max-w-7xl mx-auto px-8 py-8">
+            {renderContent()}
+          </div>
         </div>
       </div>
     </div>
