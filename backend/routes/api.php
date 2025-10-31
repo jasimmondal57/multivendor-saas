@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\Vendor\VendorOrderController;
 use App\Http\Controllers\Api\V1\Vendor\VendorReturnController;
 use App\Http\Controllers\Api\V1\Customer\CustomerReturnController;
+use App\Http\Controllers\Api\Admin\AdminReturnController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\WishlistController;
 use App\Http\Controllers\Api\V1\CouponController;
@@ -292,6 +293,14 @@ Route::prefix('v1')->group(function () {
             // Orders
             Route::get('orders', [AdminDashboardController::class, 'orders']);
             Route::patch('orders/{orderId}/status', [AdminDashboardController::class, 'updateOrderStatus']);
+
+            // Return Orders Management
+            Route::get('returns/statistics', [AdminReturnController::class, 'statistics']);
+            Route::get('returns', [AdminReturnController::class, 'index']);
+            Route::get('returns/{id}', [AdminReturnController::class, 'show']);
+            Route::post('returns/bulk-approve', [AdminReturnController::class, 'bulkApprove']);
+            Route::post('returns/bulk-reject', [AdminReturnController::class, 'bulkReject']);
+            Route::post('returns/{id}/force-complete-refund', [AdminReturnController::class, 'forceCompleteRefund']);
 
             // Customers
             Route::get('customers', [AdminDashboardController::class, 'customers']);
