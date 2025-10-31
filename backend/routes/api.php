@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Vendor\VendorOnboardingController;
 use App\Http\Controllers\Api\V1\Vendor\VendorLeaveManagementController;
 use App\Http\Controllers\Api\V1\Vendor\VendorProductController;
+use App\Http\Controllers\Api\V1\Vendor\VendorProductVariantController;
 use App\Http\Controllers\Api\V1\Vendor\VendorPayoutController;
 use App\Http\Controllers\Api\V1\Vendor\VendorSettingsController;
 use App\Http\Controllers\Api\V1\Vendor\VendorAnalyticsController;
@@ -164,6 +165,13 @@ Route::prefix('v1')->group(function () {
             Route::get('products/{id}', [VendorProductController::class, 'show']);
             Route::put('products/{id}', [VendorProductController::class, 'update']);
             Route::delete('products/{id}', [VendorProductController::class, 'destroy']);
+
+            // Product Variants
+            Route::get('products/{productId}/variants', [VendorProductVariantController::class, 'index']);
+            Route::post('products/{productId}/variants', [VendorProductVariantController::class, 'store']);
+            Route::put('products/{productId}/variants/{variantId}', [VendorProductVariantController::class, 'update']);
+            Route::delete('products/{productId}/variants/{variantId}', [VendorProductVariantController::class, 'destroy']);
+            Route::post('products/{productId}/variants/bulk-update-stock', [VendorProductVariantController::class, 'bulkUpdateStock']);
 
             // Orders
             Route::get('orders', [VendorOrderController::class, 'index']);

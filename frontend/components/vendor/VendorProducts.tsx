@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import ProductVariantsModal from './ProductVariantsModal';
 
 interface Product {
   id: number;
@@ -70,6 +71,8 @@ export default function VendorProducts() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
+  const [showVariantsModal, setShowVariantsModal] = useState(false);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
   const [formData, setFormData] = useState<ProductFormData>({
     category_id: '',
     name: '',
@@ -613,6 +616,15 @@ export default function VendorProducts() {
                           className="text-blue-600 hover:text-blue-800 font-medium"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedProductForVariants(product);
+                            setShowVariantsModal(true);
+                          }}
+                          className="text-purple-600 hover:text-purple-800 font-medium"
+                        >
+                          Variants
                         </button>
                         <button
                           onClick={() => handleDelete(product.id)}
@@ -1174,6 +1186,18 @@ export default function VendorProducts() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Product Variants Modal */}
+      {showVariantsModal && selectedProductForVariants && (
+        <ProductVariantsModal
+          productId={selectedProductForVariants.id}
+          productName={selectedProductForVariants.name}
+          onClose={() => {
+            setShowVariantsModal(false);
+            setSelectedProductForVariants(null);
+          }}
+        />
       )}
     </div>
   );

@@ -88,6 +88,11 @@ class Product extends Model
         return $this->belongsTo(User::class, 'banned_by');
     }
 
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
     public function scopeApproved($query)
     {
         return $query->where('status', 'approved');
