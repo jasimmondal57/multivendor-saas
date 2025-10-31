@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import VendorDashboard from '@/components/vendor/VendorDashboard';
+import VendorLeaveManagement from '@/components/vendor/VendorLeaveManagement';
 
 export default function VendorDashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -51,7 +52,7 @@ export default function VendorDashboardPage() {
       case 'orders':
         return <div className="p-6">Orders Management - Coming Soon</div>;
       case 'leave':
-        return <div className="p-6">Leave Management - Coming Soon</div>;
+        return <VendorLeaveManagement />;
       case 'payouts':
         return <div className="p-6">Payouts & Earnings - Coming Soon</div>;
       case 'analytics':

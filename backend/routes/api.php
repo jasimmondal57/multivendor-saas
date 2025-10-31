@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\WishlistController;
 use App\Http\Controllers\Api\V1\CouponController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Vendor\VendorOnboardingController;
+use App\Http\Controllers\Api\V1\Vendor\VendorLeaveManagementController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\SettingsController;
@@ -157,6 +158,14 @@ Route::prefix('v1')->group(function () {
 
             // Reviews
             Route::post('reviews/{id}/response', [ReviewController::class, 'vendorResponse']);
+
+            // Leave Management
+            Route::get('leaves', [VendorLeaveManagementController::class, 'index']);
+            Route::get('leaves/stats', [VendorLeaveManagementController::class, 'stats']);
+            Route::post('leaves', [VendorLeaveManagementController::class, 'store']);
+            Route::get('leaves/{id}', [VendorLeaveManagementController::class, 'show']);
+            Route::put('leaves/{id}', [VendorLeaveManagementController::class, 'update']);
+            Route::delete('leaves/{id}', [VendorLeaveManagementController::class, 'cancel']);
         });
 
         // Admin routes
