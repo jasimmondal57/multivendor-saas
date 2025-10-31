@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, AreaChart, Area, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface AnalyticsStats {
   total_sales: number;
@@ -25,10 +25,18 @@ interface TopProduct {
   total_revenue: number;
 }
 
+interface CategorySales {
+  category_id: number;
+  category_name: string;
+  total_sales: number;
+  total_revenue: number;
+}
+
 export default function VendorAnalytics() {
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
   const [salesTrend, setSalesTrend] = useState<SalesTrendData[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [categorySales, setCategorySales] = useState<CategorySales[]>([]);
   const [loading, setLoading] = useState(true);
   const [trendDays, setTrendDays] = useState(30);
 
@@ -36,6 +44,7 @@ export default function VendorAnalytics() {
     fetchStatistics();
     fetchSalesTrend(trendDays);
     fetchTopProducts();
+    fetchCategorySales();
   }, []);
 
   useEffect(() => {
@@ -77,6 +86,20 @@ export default function VendorAnalytics() {
       console.error('Failed to fetch top products:', error);
     }
   };
+
+  const fetchCategorySales = async () => {
+    try {
+      const response = await api.get('/v1/vendor/analytics/category-sales');
+      if (response.data.success) {
+        setCategorySales(response.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch category sales:', error);
+    }
+  };
+
+  // Colors for pie chart
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 
   return (
     <div>
@@ -205,6 +228,77 @@ export default function VendorAnalytics() {
           ) : (
             <div className="h-64 flex items-center justify-center text-gray-400">
               <p>No product data available</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Category Distribution & Revenue Trend */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Category Distribution Pie Chart */}
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Sales by Category</h3>
+          {categorySales.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={categorySales}
+                  dataKey="total_sales"
+                  nameKey="category_name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={(entry) => `${entry.category_name}: ${entry.total_sales}`}
+                >
+                  {categorySales.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: any) => value.toLocaleString('en-IN')} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-400">
+              <p>No category data available</p>
+            </div>
+          )}
+        </div>
+
+        {/* Revenue Trend Area Chart */}
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Revenue Trend</h3>
+          {salesTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={salesTrend}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(date) => new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                />
+                <YAxis tickFormatter={(value) => `₹${value}`} />
+                <Tooltip
+                  labelFormatter={(date) => new Date(date).toLocaleDateString('en-IN')}
+                  formatter={(value: any) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#10b981"
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-400">
+              <p>No revenue data available</p>
             </div>
           )}
         </div>

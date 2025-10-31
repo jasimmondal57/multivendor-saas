@@ -285,5 +285,139 @@ class VendorProductController extends Controller
             'message' => 'Product deleted successfully',
         ]);
     }
+
+    /**
+     * Get low stock products
+     */
+    public function lowStockProducts(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $products = Product::where('vendor_id', $vendor->id)
+            ->where('status', 'approved')
+            ->whereRaw('stock_quantity <= low_stock_threshold')
+            ->with(['category'])
+            ->orderBy('stock_quantity', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $products,
+        ]);
+    }
+
+    /**
+     * Bulk import products from CSV
+     */
+    public function bulkImport(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:10240', // 10MB max
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $csvData = array_map('str_getcsv', file($file->getRealPath()));
+            $headers = array_shift($csvData); // Remove header row
+
+            // Normalize headers (trim and lowercase)
+            $headers = array_map(function($header) {
+                return strtolower(trim($header));
+            }, $headers);
+
+            $imported = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($csvData as $index => $row) {
+                $rowNumber = $index + 2; // +2 because we removed header and arrays are 0-indexed
+
+                // Skip empty rows
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+
+                // Map CSV columns to array
+                $data = array_combine($headers, $row);
+
+                // Validate required fields
+                if (empty($data['name']) || empty($data['sku'])) {
+                    $errors[] = "Row {$rowNumber}: Name and SKU are required";
+                    $failed++;
+                    continue;
+                }
+
+                // Check if SKU already exists
+                if (Product::where('sku', $data['sku'])->exists()) {
+                    $errors[] = "Row {$rowNumber}: SKU '{$data['sku']}' already exists";
+                    $failed++;
+                    continue;
+                }
+
+                // Find category by name
+                $category = null;
+                if (!empty($data['category'])) {
+                    $category = Category::where('name', $data['category'])->first();
+                    if (!$category) {
+                        $errors[] = "Row {$rowNumber}: Category '{$data['category']}' not found";
+                        $failed++;
+                        continue;
+                    }
+                }
+
+                try {
+                    Product::create([
+                        'vendor_id' => $vendor->id,
+                        'category_id' => $category ? $category->id : null,
+                        'name' => $data['name'],
+                        'slug' => Str::slug($data['name']),
+                        'sku' => $data['sku'],
+                        'description' => $data['description'] ?? null,
+                        'mrp' => $data['mrp'] ?? 0,
+                        'selling_price' => $data['selling_price'] ?? 0,
+                        'cost_price' => $data['cost_price'] ?? null,
+                        'stock_quantity' => $data['stock'] ?? 0,
+                        'stock_status' => ($data['stock'] ?? 0) > 0 ? 'in_stock' : 'out_of_stock',
+                        'status' => 'pending', // All imported products need approval
+                    ]);
+                    $imported++;
+                } catch (\Exception $e) {
+                    $errors[] = "Row {$rowNumber}: " . $e->getMessage();
+                    $failed++;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Import completed. {$imported} products imported, {$failed} failed.",
+                'data' => [
+                    'imported' => $imported,
+                    'failed' => $failed,
+                    'errors' => $errors,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to import products: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }
 

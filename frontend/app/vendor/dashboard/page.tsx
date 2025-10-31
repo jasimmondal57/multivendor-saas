@@ -9,6 +9,7 @@ import VendorProducts from '@/components/vendor/VendorProducts';
 import VendorOrders from '@/components/vendor/VendorOrders';
 import VendorPayouts from '@/components/vendor/VendorPayouts';
 import VendorAnalytics from '@/components/vendor/VendorAnalytics';
+import VendorLowStockAlerts from '@/components/vendor/VendorLowStockAlerts';
 import VendorSettings from '@/components/vendor/VendorSettings';
 
 export default function VendorDashboardPage() {
@@ -42,6 +43,7 @@ export default function VendorDashboardPage() {
     { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
     { id: 'products', label: 'Products', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
     { id: 'orders', label: 'Orders', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
+    { id: 'alerts', label: 'Low Stock Alerts', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
     { id: 'leave', label: 'Leave Management', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
     { id: 'payouts', label: 'Payouts & Earnings', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
     { id: 'analytics', label: 'Analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
@@ -62,6 +64,8 @@ export default function VendorDashboardPage() {
         return <VendorPayouts />;
       case 'analytics':
         return <VendorAnalytics />;
+      case 'alerts':
+        return <VendorLowStockAlerts />;
       case 'settings':
         return <VendorSettings />;
       default:

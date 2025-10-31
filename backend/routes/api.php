@@ -159,6 +159,8 @@ Route::prefix('v1')->group(function () {
             // Products
             Route::get('products', [VendorProductController::class, 'index']);
             Route::post('products', [VendorProductController::class, 'store']);
+            Route::post('products/bulk-import', [VendorProductController::class, 'bulkImport']);
+            Route::get('products/low-stock', [VendorProductController::class, 'lowStockProducts']);
             Route::get('products/{id}', [VendorProductController::class, 'show']);
             Route::put('products/{id}', [VendorProductController::class, 'update']);
             Route::delete('products/{id}', [VendorProductController::class, 'destroy']);

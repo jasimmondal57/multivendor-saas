@@ -66,6 +66,10 @@ export default function VendorProducts() {
   const [totalPages, setTotalPages] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const [total, setTotal] = useState(0);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
   const [formData, setFormData] = useState<ProductFormData>({
     category_id: '',
     name: '',
@@ -219,6 +223,55 @@ export default function VendorProducts() {
 
   const handleRemoveImage = (index: number) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleImportCSV = async () => {
+    if (!importFile) {
+      alert('Please select a CSV file');
+      return;
+    }
+
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const response = await api.post('/v1/vendor/products/bulk-import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data.success) {
+        setImportResult(response.data.data);
+        alert(response.data.message);
+        fetchProducts();
+        if (response.data.data.failed === 0) {
+          setShowImportModal(false);
+          setImportFile(null);
+        }
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to import products');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const template = [
+      ['name', 'sku', 'category', 'description', 'mrp', 'selling_price', 'cost_price', 'stock'],
+      ['Sample Product', 'SKU001', 'Electronics', 'Sample description', '1000', '800', '600', '50'],
+    ];
+
+    const csvContent = template.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'product_import_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleCloseModal = () => {
@@ -379,6 +432,15 @@ export default function VendorProducts() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Export CSV
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all flex items-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Import CSV
           </button>
           <button
             onClick={() => handleOpenModal()}
@@ -992,6 +1054,124 @@ export default function VendorProducts() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Import CSV Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Import Products from CSV</h2>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                  setImportResult(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 mb-2">Instructions:</h3>
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                  <li>Download the template CSV file below</li>
+                  <li>Fill in your product data (Name and SKU are required)</li>
+                  <li>Category names must match existing categories</li>
+                  <li>All imported products will be set to "Pending" status</li>
+                  <li>Maximum file size: 10MB</li>
+                </ul>
+              </div>
+
+              {/* Download Template */}
+              <div>
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="w-full px-4 py-3 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="font-medium text-gray-700">Download CSV Template</span>
+                </button>
+              </div>
+
+              {/* File Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select CSV File
+                </label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {importFile && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Selected: {importFile.name} ({(importFile.size / 1024).toFixed(2)} KB)
+                  </p>
+                )}
+              </div>
+
+              {/* Import Result */}
+              {importResult && (
+                <div className={`border rounded-lg p-4 ${
+                  importResult.failed === 0 ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+                }`}>
+                  <h3 className="font-semibold mb-2">Import Results:</h3>
+                  <p className="text-sm mb-2">
+                    ✅ Successfully imported: <strong>{importResult.imported}</strong> products
+                  </p>
+                  {importResult.failed > 0 && (
+                    <>
+                      <p className="text-sm mb-2">
+                        ❌ Failed: <strong>{importResult.failed}</strong> products
+                      </p>
+                      {importResult.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-semibold mb-1">Errors:</p>
+                          <div className="max-h-40 overflow-y-auto bg-white rounded border border-gray-200 p-2">
+                            {importResult.errors.map((error: string, index: number) => (
+                              <p key={index} className="text-xs text-red-600 mb-1">{error}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                    setImportResult(null);
+                  }}
+                  className="flex-1 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImportCSV}
+                  disabled={!importFile || importing}
+                  className="flex-1 px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {importing ? 'Importing...' : 'Import Products'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
