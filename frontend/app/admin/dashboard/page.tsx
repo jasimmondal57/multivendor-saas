@@ -15,6 +15,9 @@ import SystemSettings from '@/components/admin/SystemSettings';
 import VendorPayouts from '@/components/admin/VendorPayouts';
 import RevenueManagement from '@/components/admin/RevenueManagement';
 import TDSManagement from '@/components/admin/TDSManagement';
+import PageBuilder from '@/components/admin/PageBuilder';
+import BannerManagement from '@/components/admin/BannerManagement';
+import MenuBuilder from '@/components/admin/MenuBuilder';
 import { exportOrders, exportProducts, exportCustomers, exportVendors, exportToCSV } from '@/lib/exportUtils';
 
 export default function AdminDashboardPage() {
@@ -200,6 +203,9 @@ export default function AdminDashboardPage() {
     { id: 'revenue', label: 'Revenue Management', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     { id: 'tds', label: 'TDS Management', icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z' },
     { id: 'payouts', label: 'Vendor Payouts', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+    { id: 'pages', label: 'Page Builder', icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z' },
+    { id: 'banners', label: 'Banner Management', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
+    { id: 'menus', label: 'Menu Builder', icon: 'M4 6h16M4 12h16M4 18h16' },
     { id: 'reports', label: 'Reports', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     { id: 'analytics', label: 'Analytics', icon: 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
     { id: 'settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z' },
@@ -242,6 +248,12 @@ export default function AdminDashboardPage() {
         return <TDSManagement />;
       case 'payouts':
         return <VendorPayouts />;
+      case 'pages':
+        return <PageBuilder />;
+      case 'banners':
+        return <BannerManagement />;
+      case 'menus':
+        return <MenuBuilder />;
       case 'reports':
         return renderReports();
       case 'analytics':
