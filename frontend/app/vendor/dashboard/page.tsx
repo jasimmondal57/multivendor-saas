@@ -5,6 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import VendorDashboard from '@/components/vendor/VendorDashboard';
 import VendorLeaveManagement from '@/components/vendor/VendorLeaveManagement';
+import VendorProducts from '@/components/vendor/VendorProducts';
+import VendorOrders from '@/components/vendor/VendorOrders';
+import VendorPayouts from '@/components/vendor/VendorPayouts';
+import VendorAnalytics from '@/components/vendor/VendorAnalytics';
+import VendorSettings from '@/components/vendor/VendorSettings';
 
 export default function VendorDashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -48,17 +53,17 @@ export default function VendorDashboardPage() {
       case 'dashboard':
         return <VendorDashboard />;
       case 'products':
-        return <div className="p-6">Products Management - Coming Soon</div>;
+        return <VendorProducts />;
       case 'orders':
-        return <div className="p-6">Orders Management - Coming Soon</div>;
+        return <VendorOrders />;
       case 'leave':
         return <VendorLeaveManagement />;
       case 'payouts':
-        return <div className="p-6">Payouts & Earnings - Coming Soon</div>;
+        return <VendorPayouts />;
       case 'analytics':
-        return <div className="p-6">Analytics - Coming Soon</div>;
+        return <VendorAnalytics />;
       case 'settings':
-        return <div className="p-6">Settings - Coming Soon</div>;
+        return <VendorSettings />;
       default:
         return <VendorDashboard />;
     }

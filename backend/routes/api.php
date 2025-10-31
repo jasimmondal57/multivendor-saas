@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\CouponController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Vendor\VendorOnboardingController;
 use App\Http\Controllers\Api\V1\Vendor\VendorLeaveManagementController;
+use App\Http\Controllers\Api\V1\Vendor\VendorProductController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\SettingsController;
@@ -141,6 +142,9 @@ Route::prefix('v1')->group(function () {
             Route::post('images/upload-multiple', [ImageUploadController::class, 'uploadMultipleImages']);
             Route::delete('images/delete', [ImageUploadController::class, 'deleteProductImage']);
 
+            // Dashboard
+            Route::get('dashboard/stats', [VendorProductController::class, 'dashboardStats']);
+
             // Onboarding
             Route::get('onboarding/status', [VendorOnboardingController::class, 'status']);
             Route::post('onboarding/business-info', [VendorOnboardingController::class, 'updateBusinessInfo']);
@@ -148,6 +152,13 @@ Route::prefix('v1')->group(function () {
             Route::post('onboarding/bank-details', [VendorOnboardingController::class, 'updateBankDetails']);
             Route::post('onboarding/store-details', [VendorOnboardingController::class, 'updateStoreDetails']);
             Route::post('onboarding/documents', [VendorOnboardingController::class, 'uploadDocuments']);
+
+            // Products
+            Route::get('products', [VendorProductController::class, 'index']);
+            Route::post('products', [VendorProductController::class, 'store']);
+            Route::get('products/{id}', [VendorProductController::class, 'show']);
+            Route::put('products/{id}', [VendorProductController::class, 'update']);
+            Route::delete('products/{id}', [VendorProductController::class, 'destroy']);
 
             // Orders
             Route::get('orders', [VendorOrderController::class, 'index']);
