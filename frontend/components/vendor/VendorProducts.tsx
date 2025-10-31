@@ -209,6 +209,24 @@ export default function VendorProducts() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    // Validate file sizes (max 5MB per file)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    const oversizedFiles = Array.from(files).filter(file => file.size > maxSize);
+
+    if (oversizedFiles.length > 0) {
+      const fileNames = oversizedFiles.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join(', ');
+      alert(`The following files exceed the 5MB limit:\n${fileNames}\n\nPlease compress or resize these images before uploading.`);
+      e.target.value = ''; // Clear the input
+      return;
+    }
+
+    // Validate total number of images
+    if (uploadedImages.length + files.length > 5) {
+      alert(`You can only upload up to 5 images per product. You currently have ${uploadedImages.length} image(s).`);
+      e.target.value = ''; // Clear the input
+      return;
+    }
+
     setUploadingImage(true);
     try {
       const formData = new FormData();
@@ -226,9 +244,18 @@ export default function VendorProducts() {
         alert('Images uploaded successfully');
       }
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to upload images');
+      const errorMessage = error.response?.data?.message || 'Failed to upload images';
+      const errors = error.response?.data?.errors;
+
+      if (errors) {
+        const errorDetails = Object.values(errors).flat().join('\n');
+        alert(`Upload failed:\n${errorDetails}`);
+      } else {
+        alert(errorMessage);
+      }
     } finally {
       setUploadingImage(false);
+      e.target.value = ''; // Clear the input
     }
   };
 
@@ -940,18 +967,32 @@ export default function VendorProducts() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Upload Images (Max 5)
+                      Upload Images (Max 5 images, 5MB each)
                     </label>
                     <input
                       type="file"
                       multiple
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
                       onChange={handleImageUpload}
                       disabled={uploadingImage || uploadedImages.length >= 5}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Supported formats: JPEG, PNG, JPG, GIF, WebP. Max size: 5MB per image.
+                    </p>
                     {uploadingImage && (
-                      <p className="text-sm text-blue-600 mt-2">Uploading images...</p>
+                      <p className="text-sm text-blue-600 mt-2 flex items-center">
+                        <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Uploading images...
+                      </p>
+                    )}
+                    {uploadedImages.length >= 5 && (
+                      <p className="text-sm text-orange-600 mt-2">
+                        ⚠️ Maximum 5 images reached. Remove an image to upload more.
+                      </p>
                     )}
                   </div>
 
