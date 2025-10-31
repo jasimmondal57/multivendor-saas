@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import ProductVariantsModal from './ProductVariantsModal';
-import VirtualizedProductList from './VirtualizedProductList';
+// import VirtualizedProductList from './VirtualizedProductList'; // Temporarily disabled
 
 interface Product {
   id: number;
@@ -429,7 +429,8 @@ export default function VendorProducts() {
           <p className="text-gray-600">Manage your product inventory</p>
         </div>
         <div className="flex space-x-3">
-          <button
+          {/* Virtual Scrolling Toggle - Temporarily Disabled */}
+          {/* <button
             onClick={() => setUseVirtualization(!useVirtualization)}
             className={`px-4 py-2 border rounded-lg transition-all flex items-center ${
               useVirtualization
@@ -442,7 +443,7 @@ export default function VendorProducts() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             {useVirtualization ? 'Virtual Mode' : 'Normal Mode'}
-          </button>
+          </button> */}
           <button
             onClick={handleBulkExport}
             className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all flex items-center"
@@ -563,26 +564,13 @@ export default function VendorProducts() {
       </div>
 
       {/* Products Table */}
-      {loading ? (
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-12 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        </div>
-      ) : getFilteredProducts().length > 0 ? (
-        useVirtualization ? (
-          <VirtualizedProductList
-            products={getFilteredProducts()}
-            onEdit={handleOpenModal}
-            onDelete={handleDelete}
-            onManageVariants={(product) => {
-              setSelectedProductForVariants(product);
-              setShowVariantsModal(true);
-            }}
-            selectedProducts={selectedProducts}
-            onToggleSelect={toggleSelectProduct}
-          />
-        ) : (
-          <div className="bg-white rounded-xl shadow border border-gray-200">
-            <div className="overflow-x-auto">
+      <div className="bg-white rounded-xl shadow border border-gray-200">
+        {loading ? (
+          <div className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          </div>
+        ) : getFilteredProducts().length > 0 ? (
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -753,22 +741,21 @@ export default function VendorProducts() {
               </div>
             )}
           </div>
-        </div>
-        )
-      ) : (
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-12 text-center text-gray-500">
-          <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-          <p>No products found</p>
-          <button
-            onClick={() => handleOpenModal()}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Add Your First Product
-          </button>
-        </div>
-      )}
+        ) : (
+          <div className="p-12 text-center text-gray-500">
+            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <p>No products found</p>
+            <button
+              onClick={() => handleOpenModal()}
+              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Add Your First Product
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Add/Edit Product Modal */}
       {showModal && (

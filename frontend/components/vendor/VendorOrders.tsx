@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import VirtualizedOrderList from './VirtualizedOrderList';
+// import VirtualizedOrderList from './VirtualizedOrderList'; // Temporarily disabled
 
 interface OrderItem {
   id: number;
@@ -186,7 +186,8 @@ export default function VendorOrders() {
           <p className="text-gray-600">Manage and track your orders</p>
         </div>
         <div className="flex space-x-3">
-          <button
+          {/* Virtual Scrolling Toggle - Temporarily Disabled */}
+          {/* <button
             onClick={() => setUseVirtualization(!useVirtualization)}
             className={`px-4 py-2 border rounded-lg transition-all flex items-center ${
               useVirtualization
@@ -199,7 +200,7 @@ export default function VendorOrders() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             {useVirtualization ? 'Virtual Mode' : 'Normal Mode'}
-          </button>
+          </button> */}
           <button
             onClick={handleExportOrders}
             className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all flex items-center"
@@ -270,29 +271,13 @@ export default function VendorOrders() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-12 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        </div>
-      ) : getFilteredOrders().length > 0 ? (
-        useVirtualization ? (
-          <VirtualizedOrderList
-            orders={getFilteredOrders().map(order => ({
-              id: order.id,
-              order_number: order.order_number,
-              customer_name: order.customer?.name || 'N/A',
-              product_name: order.items && order.items.length > 0 ? order.items[0].product.name : 'N/A',
-              quantity: order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0,
-              total_amount: order.total_amount || 0,
-              status: order.status,
-              created_at: order.created_at,
-            }))}
-            onViewDetails={(order) => handleViewOrder(order.id)}
-            onUpdateStatus={(order) => handleViewOrder(order.id)}
-          />
-        ) : (
-          <div className="bg-white rounded-xl shadow border border-gray-200">
-            <div className="overflow-x-auto">
+      <div className="bg-white rounded-xl shadow border border-gray-200">
+        {loading ? (
+          <div className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          </div>
+        ) : getFilteredOrders().length > 0 ? (
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -418,16 +403,15 @@ export default function VendorOrders() {
               </div>
             )}
           </div>
-        </div>
-        )
-      ) : (
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-12 text-center text-gray-500">
-          <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          <p>No orders yet</p>
-        </div>
-      )}
+        ) : (
+          <div className="p-12 text-center text-gray-500">
+            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <p>No orders yet</p>
+          </div>
+        )}
+      </div>
 
       {/* Order Details Modal */}
       {showDetailsModal && selectedOrder && (
