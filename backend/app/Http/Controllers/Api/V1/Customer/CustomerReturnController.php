@@ -6,12 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ReturnOrder;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class CustomerReturnController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
     /**
      * Get customer's orders eligible for return
      */
@@ -182,13 +189,19 @@ class CustomerReturnController extends Controller
 
             DB::commit();
 
-            // TODO: Send notification to vendor
-            // TODO: Send confirmation email to customer
+            // Load relationships for notifications
+            $return->load(['order', 'orderItem.product', 'vendor', 'product', 'customer']);
+
+            // Send notification to customer
+            $this->notificationService->sendReturnRequestedNotification($return, $user);
+
+            // Send notification to vendor
+            $this->notificationService->sendVendorReturnRequestedNotification($return, $orderItem->vendor, $user);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Return request submitted successfully',
-                'data' => $return->fresh(['order', 'orderItem.product', 'vendor', 'product']),
+                'data' => $return,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
