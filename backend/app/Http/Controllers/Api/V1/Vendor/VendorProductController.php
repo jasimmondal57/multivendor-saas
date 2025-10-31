@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\ProductVariant;
 use App\Models\CategoryAttribute;
 use App\Models\ProductAttributeValue;
+use App\Models\ProductStockHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -758,6 +759,199 @@ class VendorProductController extends Controller
                 'message' => 'Failed to save product attributes: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Update product stock quantity (no admin approval needed)
+     */
+    public function updateStock(Request $request, $id)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not authenticated',
+            ], 401);
+        }
+
+        $vendor = $user->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $product = Product::where('id', $id)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'quantity' => 'required|integer',
+            'type' => 'required|in:increase,decrease',
+            'reason' => 'required|in:restock,sale,damage,return,correction,initial,other',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $previousStock = $product->stock_quantity;
+            $quantity = abs($request->quantity);
+
+            if ($request->type === 'increase') {
+                $newStock = $previousStock + $quantity;
+            } else {
+                $newStock = max(0, $previousStock - $quantity);
+            }
+
+            // Update product stock
+            $product->update([
+                'stock_quantity' => $newStock,
+                'stock_status' => $newStock > 0 ? 'in_stock' : 'out_of_stock',
+            ]);
+
+            // Record stock history
+            ProductStockHistory::create([
+                'product_id' => $product->id,
+                'user_id' => $user->id,
+                'type' => $request->type,
+                'quantity' => $quantity,
+                'previous_stock' => $previousStock,
+                'new_stock' => $newStock,
+                'reason' => $request->reason,
+                'notes' => $request->notes,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock updated successfully',
+                'data' => [
+                    'previous_stock' => $previousStock,
+                    'new_stock' => $newStock,
+                    'product' => $product,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update stock: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle product active/inactive status (no admin approval needed for approved products)
+     */
+    public function toggleStatus(Request $request, $id)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not authenticated',
+            ], 401);
+        }
+
+        $vendor = $user->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $product = Product::where('id', $id)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        // Only allow toggling status for approved products
+        if ($product->status !== 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Can only toggle status for approved products',
+            ], 400);
+        }
+
+        $newStatus = $product->is_active ? 0 : 1;
+
+        $product->update([
+            'is_active' => $newStatus,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $newStatus ? 'Product activated successfully' : 'Product deactivated successfully',
+            'data' => [
+                'is_active' => (bool) $newStatus,
+                'product' => $product,
+            ],
+        ]);
+    }
+
+    /**
+     * Get stock history for a product
+     */
+    public function getStockHistory(Request $request, $id)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not authenticated',
+            ], 401);
+        }
+
+        $vendor = $user->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $product = Product::where('id', $id)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        $history = ProductStockHistory::where('product_id', $product->id)
+            ->with('user:id,name,email')
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => $history,
+        ]);
     }
 }
 

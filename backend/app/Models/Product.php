@@ -98,6 +98,11 @@ class Product extends Model
         return $this->hasMany(ProductAttributeValue::class);
     }
 
+    public function stockHistory()
+    {
+        return $this->hasMany(ProductStockHistory::class);
+    }
+
     public function scopeApproved($query)
     {
         return $query->where('status', 'approved');

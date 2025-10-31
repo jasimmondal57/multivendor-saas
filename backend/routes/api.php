@@ -185,6 +185,11 @@ Route::prefix('v1')->group(function () {
             Route::get('products/{productId}/attributes', [VendorProductController::class, 'getProductAttributes']);
             Route::post('products/{productId}/attributes', [VendorProductController::class, 'saveProductAttributes']);
 
+            // Inventory Management
+            Route::post('products/{id}/update-stock', [VendorProductController::class, 'updateStock']);
+            Route::post('products/{id}/toggle-status', [VendorProductController::class, 'toggleStatus']);
+            Route::get('products/{id}/stock-history', [VendorProductController::class, 'getStockHistory']);
+
             // Orders
             Route::get('orders', [VendorOrderController::class, 'index']);
             Route::get('orders/statistics', [VendorOrderController::class, 'statistics']); // Must be before {id} route

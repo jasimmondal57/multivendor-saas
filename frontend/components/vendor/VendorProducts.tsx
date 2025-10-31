@@ -174,6 +174,18 @@ export default function VendorProducts() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
   const [productAttributes, setProductAttributes] = useState<Record<number, any>>({});
+
+  // Inventory Management States
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [showStockHistoryModal, setShowStockHistoryModal] = useState(false);
+  const [selectedProductForStock, setSelectedProductForStock] = useState<Product | null>(null);
+  const [stockAdjustment, setStockAdjustment] = useState({
+    type: 'increase' as 'increase' | 'decrease',
+    quantity: 0,
+    reason: 'restock' as 'restock' | 'sale' | 'damage' | 'return' | 'correction' | 'initial' | 'other',
+    notes: '',
+  });
+  const [stockHistory, setStockHistory] = useState<any[]>([]);
   const [formData, setFormData] = useState<ProductFormData>({
     category_id: '',
     name: '',
@@ -553,6 +565,71 @@ export default function VendorProducts() {
     }
   };
 
+  // Inventory Management Functions
+  const handleOpenStockModal = (product: Product) => {
+    setSelectedProductForStock(product);
+    setStockAdjustment({
+      type: 'increase',
+      quantity: 0,
+      reason: 'restock',
+      notes: '',
+    });
+    setShowStockModal(true);
+  };
+
+  const handleStockAdjustment = async () => {
+    if (!selectedProductForStock) return;
+    if (stockAdjustment.quantity <= 0) {
+      alert('Please enter a valid quantity');
+      return;
+    }
+
+    try {
+      const response = await api.post(`/v1/vendor/products/${selectedProductForStock.id}/update-stock`, stockAdjustment);
+      if (response.data.success) {
+        alert(`Stock ${stockAdjustment.type === 'increase' ? 'increased' : 'decreased'} successfully`);
+        setShowStockModal(false);
+        fetchProducts();
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to update stock');
+    }
+  };
+
+  const handleToggleStatus = async (product: Product) => {
+    if (product.status !== 'approved') {
+      alert('Can only toggle status for approved products');
+      return;
+    }
+
+    const action = product.is_active ? 'deactivate' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} this product?`)) return;
+
+    try {
+      const response = await api.post(`/v1/vendor/products/${product.id}/toggle-status`);
+      if (response.data.success) {
+        alert(response.data.message);
+        fetchProducts();
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to toggle status');
+    }
+  };
+
+  const handleViewStockHistory = async (product: Product) => {
+    setSelectedProductForStock(product);
+    setShowStockHistoryModal(true);
+
+    try {
+      const response = await api.get(`/v1/vendor/products/${product.id}/stock-history`);
+      if (response.data.success) {
+        setStockHistory(response.data.data.data || []);
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to fetch stock history');
+    }
+  };
+
   const toggleSelectProduct = (id: number) => {
     setSelectedProducts(prev =>
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
@@ -898,6 +975,45 @@ export default function VendorProducts() {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex flex-wrap gap-2">
+                        {/* Inventory Management Actions */}
+                        <button
+                          onClick={() => handleOpenStockModal(product)}
+                          className="text-orange-600 hover:text-orange-800 font-medium flex items-center"
+                          title="Adjust Stock"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                          Stock
+                        </button>
+                        {product.status === 'approved' && (
+                          <button
+                            onClick={() => handleToggleStatus(product)}
+                            className={`font-medium flex items-center ${product.is_active ? 'text-yellow-600 hover:text-yellow-800' : 'text-green-600 hover:text-green-800'}`}
+                            title={product.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              {product.is_active ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              )}
+                            </svg>
+                            {product.is_active ? 'Hide' : 'Show'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleViewStockHistory(product)}
+                          className="text-gray-600 hover:text-gray-800 font-medium flex items-center"
+                          title="Stock History"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          History
+                        </button>
+
+                        {/* Existing Actions */}
                         <button
                           onClick={() => handleQuickEdit(product)}
                           className="text-green-600 hover:text-green-800 font-medium flex items-center"
@@ -1626,6 +1742,198 @@ export default function VendorProducts() {
             fetchProducts();
           }}
         />
+      )}
+
+      {/* Stock Adjustment Modal */}
+      {showStockModal && selectedProductForStock && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Adjust Stock</h2>
+              <button onClick={() => setShowStockModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-sm text-gray-600">Product</p>
+                <p className="font-semibold text-gray-900">{selectedProductForStock.name}</p>
+                <p className="text-sm text-gray-500">Current Stock: <span className="font-medium text-gray-900">{selectedProductForStock.stock_quantity}</span></p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Adjustment Type</label>
+                <select
+                  value={stockAdjustment.type}
+                  onChange={(e) => setStockAdjustment({ ...stockAdjustment, type: e.target.value as 'increase' | 'decrease' })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="increase">Increase Stock</option>
+                  <option value="decrease">Decrease Stock</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={stockAdjustment.quantity}
+                  onChange={(e) => setStockAdjustment({ ...stockAdjustment, quantity: parseInt(e.target.value) || 0 })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter quantity"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
+                <select
+                  value={stockAdjustment.reason}
+                  onChange={(e) => setStockAdjustment({ ...stockAdjustment, reason: e.target.value as any })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="restock">Restock - New inventory received</option>
+                  <option value="sale">Sale - Sold to customer</option>
+                  <option value="damage">Damage - Damaged/defective items</option>
+                  <option value="return">Return - Customer return</option>
+                  <option value="correction">Correction - Manual correction</option>
+                  <option value="initial">Initial - Initial stock setup</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                <textarea
+                  value={stockAdjustment.notes}
+                  onChange={(e) => setStockAdjustment({ ...stockAdjustment, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Add any additional notes..."
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">New Stock:</span>{' '}
+                  {stockAdjustment.type === 'increase'
+                    ? selectedProductForStock.stock_quantity + stockAdjustment.quantity
+                    : Math.max(0, selectedProductForStock.stock_quantity - stockAdjustment.quantity)}
+                </p>
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 border-t border-gray-200">
+              <button
+                onClick={() => setShowStockModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStockAdjustment}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Update Stock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock History Modal */}
+      {showStockHistoryModal && selectedProductForStock && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Stock History</h2>
+                <p className="text-sm text-gray-600">{selectedProductForStock.name}</p>
+              </div>
+              <button onClick={() => setShowStockHistoryModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6">
+              {stockHistory.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-gray-500">No stock history available</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {stockHistory.map((history: any) => (
+                    <div key={history.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            history.type === 'increase' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {history.type === 'increase' ? '↑ Increase' : '↓ Decrease'}
+                          </span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {history.type === 'increase' ? '+' : '-'}{history.quantity} units
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(history.created_at).toLocaleString('en-IN', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short'
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 mb-2">
+                        <div>
+                          <p className="text-xs text-gray-500">Previous Stock</p>
+                          <p className="text-sm font-medium text-gray-900">{history.previous_stock}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">New Stock</p>
+                          <p className="text-sm font-medium text-gray-900">{history.new_stock}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Reason</p>
+                          <p className="text-sm font-medium text-gray-900 capitalize">{history.reason.replace('_', ' ')}</p>
+                        </div>
+                      </div>
+
+                      {history.notes && (
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                          <p className="text-xs text-gray-500">Notes</p>
+                          <p className="text-sm text-gray-700">{history.notes}</p>
+                        </div>
+                      )}
+
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs text-gray-500">
+                          Updated by: <span className="font-medium text-gray-700">{history.user?.name || 'Unknown'}</span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowStockHistoryModal(false)}
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
