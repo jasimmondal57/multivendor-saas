@@ -241,6 +241,7 @@ Route::prefix('v1')->group(function () {
             Route::get('payouts', [VendorPayoutController::class, 'index']);
             Route::get('payouts/statistics', [VendorPayoutController::class, 'statistics']);
             Route::get('payouts/{id}', [VendorPayoutController::class, 'show']);
+            Route::get('payouts/{id}/orders', [VendorPayoutController::class, 'orderBreakdown']);
 
             // Settings
             Route::get('settings/profile', [VendorSettingsController::class, 'getProfile']);
