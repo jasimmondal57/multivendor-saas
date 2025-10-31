@@ -407,8 +407,9 @@ class DemoDataSeeder extends Seeder
             $vendor = $vendorData['vendor'];
 
             // ===== LAST MONTH PAYOUT (COMPLETED) =====
-            $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
-            $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();
+            // Use September 2025 for completed payout (2 months ago to ensure data exists)
+            $lastMonthStart = Carbon::create(2025, 9, 1)->startOfMonth();
+            $lastMonthEnd = Carbon::create(2025, 9, 30)->endOfMonth();
 
             $lastMonthOrders = Order::where('status', 'delivered')
                 ->where('delivered_at', '>=', $lastMonthStart)
@@ -506,12 +507,13 @@ class DemoDataSeeder extends Seeder
             }
 
             // ===== THIS MONTH PAYOUT (PENDING) =====
-            $thisMonthStart = Carbon::now()->startOfMonth();
-            $thisMonthEnd = Carbon::now()->endOfMonth();
+            // Use October 2025 for pending payout (current month)
+            $thisMonthStart = Carbon::create(2025, 10, 1)->startOfMonth();
+            $thisMonthEnd = Carbon::create(2025, 10, 31)->endOfMonth();
 
             $thisMonthOrders = Order::where('status', 'delivered')
                 ->where('delivered_at', '>=', $thisMonthStart)
-                ->where('delivered_at', '<=', Carbon::now())
+                ->where('delivered_at', '<=', $thisMonthEnd)
                 ->whereHas('items', function($query) use ($vendor) {
                     $query->where('vendor_id', $vendor->id);
                 })
