@@ -110,6 +110,14 @@ class Order extends Model
     }
 
     /**
+     * Get the shipments for this order
+     */
+    public function shipments(): HasMany
+    {
+        return $this->hasMany(Shipment::class);
+    }
+
+    /**
      * Check if order can be cancelled
      */
     public function canBeCancelled(): bool

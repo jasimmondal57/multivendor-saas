@@ -197,6 +197,13 @@ Route::prefix('v1')->group(function () {
             Route::put('orders/{orderId}/items/{itemId}/status', [VendorOrderController::class, 'updateItemStatus']);
             Route::post('orders/{id}/ready-for-pickup', [VendorOrderController::class, 'readyForPickup']);
 
+            // Order Management (Industry-level flow)
+            Route::post('orders/{orderId}/items/{itemId}/accept', [VendorOrderController::class, 'acceptOrder']);
+            Route::post('orders/{orderId}/items/{itemId}/reject', [VendorOrderController::class, 'rejectOrder']);
+            Route::post('orders/{orderId}/items/{itemId}/ready-to-ship', [VendorOrderController::class, 'markReadyToShip']);
+            Route::post('orders/{orderId}/items/{itemId}/generate-label', [VendorOrderController::class, 'generateShippingLabel']);
+            Route::get('orders/{orderId}/items/{itemId}/timeline', [VendorOrderController::class, 'getOrderTimeline']);
+
             // Reviews
             Route::post('reviews/{id}/response', [ReviewController::class, 'vendorResponse']);
 

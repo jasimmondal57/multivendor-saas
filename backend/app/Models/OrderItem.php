@@ -19,6 +19,11 @@ class OrderItem extends Model
         'discount_amount',
         'total_amount',
         'status',
+        'vendor_status',
+        'accepted_at',
+        'rejected_at',
+        'rejection_reason',
+        'ready_to_ship_at',
     ];
 
     protected $casts = [
@@ -27,6 +32,9 @@ class OrderItem extends Model
         'tax_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'accepted_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'ready_to_ship_at' => 'datetime',
     ];
 
     /**
