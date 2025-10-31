@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BankHoliday;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\SystemSetting;
@@ -9,6 +10,7 @@ use App\Models\Vendor;
 use App\Models\VendorPayout;
 use App\Models\VendorWallet;
 use App\Models\WalletTransaction;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -39,6 +41,15 @@ class PayoutService
         $totalSales = $orderItems->sum('total_amount');
         $totalOrders = $orderItems->pluck('order_id')->unique()->count();
         $orderIds = $orderItems->pluck('order_id')->unique()->values()->toArray();
+
+        // Get earliest and latest delivery dates
+        $deliveryDates = $orderItems->map(fn($item) => $item->order->delivered_at)->filter();
+        $earliestDeliveryDate = $deliveryDates->min();
+        $latestDeliveryDate = $deliveryDates->max();
+
+        // Calculate scheduled payout date
+        // Latest delivery date + 30 days return period + 1 day, skipping bank holidays
+        $scheduledPayoutDate = $this->calculateScheduledPayoutDate($latestDeliveryDate);
 
         // Get commission rate (vendor-specific or global)
         $commissionRate = $vendor->commission_percentage
@@ -84,8 +95,36 @@ class PayoutService
                 'net_amount' => round($netAmount, 2),
                 'total_orders' => $totalOrders,
                 'order_ids' => $orderIds,
+                'earliest_delivery_date' => $earliestDeliveryDate?->format('Y-m-d'),
+                'latest_delivery_date' => $latestDeliveryDate?->format('Y-m-d'),
+                'scheduled_payout_date' => $scheduledPayoutDate?->format('Y-m-d'),
             ],
         ];
+    }
+
+    /**
+     * Calculate scheduled payout date
+     * Formula: Latest delivery date + 30 days return period + 1 day, skipping bank holidays and weekends
+     */
+    private function calculateScheduledPayoutDate(?Carbon $latestDeliveryDate): ?Carbon
+    {
+        if (!$latestDeliveryDate) {
+            return null;
+        }
+
+        // Get return period from system settings (default 30 days)
+        $returnPeriodDays = SystemSetting::get('return_period_days', 30);
+
+        // Add return period days to latest delivery date
+        $returnPeriodEndDate = $latestDeliveryDate->copy()->addDays($returnPeriodDays);
+
+        // Add 1 day after return period ends
+        $scheduledDate = $returnPeriodEndDate->addDay();
+
+        // Skip weekends and bank holidays to get next working day
+        $scheduledDate = BankHoliday::getNextWorkingDay($scheduledDate);
+
+        return $scheduledDate;
     }
 
     /**
@@ -100,6 +139,9 @@ class PayoutService
             'vendor_id' => $vendor->id,
             'period_start' => $data['period_start'],
             'period_end' => $data['period_end'],
+            'scheduled_payout_date' => $data['scheduled_payout_date'] ?? null,
+            'earliest_delivery_date' => $data['earliest_delivery_date'] ?? null,
+            'latest_delivery_date' => $data['latest_delivery_date'] ?? null,
             'total_sales' => $data['total_sales'],
             'platform_commission' => $data['platform_commission'],
             'commission_rate' => $data['commission_rate'],
