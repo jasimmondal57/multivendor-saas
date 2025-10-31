@@ -25,13 +25,20 @@ export default function VendorDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, ordersRes] = await Promise.all([
+      const [productStatsRes, orderStatsRes, ordersRes] = await Promise.all([
+        api.get('/v1/vendor/dashboard/stats'),
         api.get('/v1/vendor/orders/statistics'),
         api.get('/v1/vendor/orders?per_page=5'),
       ]);
 
-      if (statsRes.data.success) {
-        setStats(statsRes.data.data);
+      // Combine product stats and order stats
+      if (productStatsRes.data.success && orderStatsRes.data.success) {
+        setStats({
+          ...productStatsRes.data.data,
+          ...orderStatsRes.data.data,
+          active_orders: orderStatsRes.data.data.pending_orders + orderStatsRes.data.data.processing_orders,
+          pending_payout: 0, // TODO: Fetch from payout API
+        });
       }
 
       if (ordersRes.data.success) {

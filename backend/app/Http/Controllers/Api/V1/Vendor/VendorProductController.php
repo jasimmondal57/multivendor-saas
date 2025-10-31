@@ -63,12 +63,21 @@ class VendorProductController extends Controller
      */
     public function dashboardStats(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not authenticated',
+            ], 401);
+        }
+
+        $vendor = $user->vendor;
 
         if (!$vendor) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vendor profile not found',
+                'message' => 'Vendor profile not found. Please contact support.',
             ], 404);
         }
 
