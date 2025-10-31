@@ -37,8 +37,15 @@ export default function VendorDashboard() {
       if (ordersRes.data.success) {
         setRecentOrders(ordersRes.data.data.data || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch dashboard data:', error);
+      console.error('Error details:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+
+      // If unauthorized, redirect to login
+      if (error.response?.status === 401) {
+        window.location.href = '/vendor/login';
+      }
     } finally {
       setLoading(false);
     }
