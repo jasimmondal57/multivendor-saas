@@ -1128,25 +1128,28 @@ export default function VendorProducts() {
                         )}
 
                         {attr.input_type === 'multi_select' && attr.options && (
-                          <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3">
-                            {attr.options.map((option) => (
-                              <label key={option} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                                <input
-                                  type="checkbox"
-                                  checked={(productAttributes[attr.id] || []).includes(option)}
-                                  onChange={(e) => {
-                                    const currentValues = productAttributes[attr.id] || [];
-                                    const newValues = e.target.checked
-                                      ? [...currentValues, option]
-                                      : currentValues.filter((v: string) => v !== option);
-                                    handleAttributeChange(attr.id, newValues);
-                                  }}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-sm text-gray-700">{option}</span>
-                              </label>
-                            ))}
-                          </div>
+                          <>
+                            <select
+                              multiple
+                              required={attr.is_required}
+                              value={productAttributes[attr.id] || []}
+                              onChange={(e) => {
+                                const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                                handleAttributeChange(attr.id, selectedOptions);
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              size={Math.min(attr.options.length, 5)}
+                            >
+                              {attr.options.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Hold Ctrl (Windows) or Cmd (Mac) to select multiple options
+                            </p>
+                          </>
                         )}
 
                         {attr.input_type === 'color' && (
