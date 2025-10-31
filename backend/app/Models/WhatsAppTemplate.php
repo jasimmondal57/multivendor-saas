@@ -43,8 +43,9 @@ class WhatsAppTemplate extends Model
     public static function getByCode(string $code)
     {
         return self::where('code', $code)
-            ->where('status', 'approved')
             ->where('is_active', true)
+            ->whereIn('status', ['approved', 'draft']) // Allow draft templates for development
+            ->orderByRaw("CASE WHEN status = 'approved' THEN 1 ELSE 2 END") // Prefer approved
             ->first();
     }
 
