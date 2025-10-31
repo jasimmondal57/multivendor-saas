@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import ProductVariantsModal from './ProductVariantsModal';
+import QuickEditPanel from './QuickEditPanel';
+import BulkEditModal from './BulkEditModal';
 // import VirtualizedProductList from './VirtualizedProductList'; // Temporarily disabled
 
 interface Product {
@@ -75,6 +77,10 @@ export default function VendorProducts() {
   const [showVariantsModal, setShowVariantsModal] = useState(false);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
   const [useVirtualization, setUseVirtualization] = useState(false);
+  const [showQuickEdit, setShowQuickEdit] = useState(false);
+  const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [formData, setFormData] = useState<ProductFormData>({
     category_id: '',
     name: '',
@@ -357,14 +363,36 @@ export default function VendorProducts() {
     if (!confirm(`Are you sure you want to delete ${selectedProducts.length} product(s)?`)) return;
 
     try {
-      const deletePromises = selectedProducts.map(id => api.delete(`/v1/vendor/products/${id}`));
-      await Promise.all(deletePromises);
-      alert('Products deleted successfully');
-      setSelectedProducts([]);
-      fetchProducts();
+      const response = await api.post('/v1/vendor/products/bulk-delete', {
+        product_ids: selectedProducts,
+      });
+      if (response.data.success) {
+        alert('Products deleted successfully');
+        setSelectedProducts([]);
+        fetchProducts();
+      }
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to delete products');
     }
+  };
+
+  const handleDuplicate = async (id: number) => {
+    if (!confirm('Do you want to duplicate this product?')) return;
+
+    try {
+      const response = await api.post(`/v1/vendor/products/${id}/duplicate`);
+      if (response.data.success) {
+        alert('Product duplicated successfully! Pending admin approval.');
+        fetchProducts();
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to duplicate product');
+    }
+  };
+
+  const handleQuickEdit = (product: Product) => {
+    setQuickEditProduct(product);
+    setShowQuickEdit(true);
   };
 
   const handleBulkExport = () => {
@@ -429,21 +457,35 @@ export default function VendorProducts() {
           <p className="text-gray-600">Manage your product inventory</p>
         </div>
         <div className="flex space-x-3">
-          {/* Virtual Scrolling Toggle - Temporarily Disabled */}
-          {/* <button
-            onClick={() => setUseVirtualization(!useVirtualization)}
-            className={`px-4 py-2 border rounded-lg transition-all flex items-center ${
-              useVirtualization
-                ? 'bg-purple-600 text-white border-purple-600'
-                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-            title={useVirtualization ? 'Disable Virtual Scrolling' : 'Enable Virtual Scrolling (Better Performance)'}
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            {useVirtualization ? 'Virtual Mode' : 'Normal Mode'}
-          </button> */}
+          {/* View Mode Toggle */}
+          <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-4 py-2 flex items-center transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+              title="List View"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-4 py-2 flex items-center transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+              title="Grid View"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+          </div>
           <button
             onClick={handleBulkExport}
             className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all flex items-center"
@@ -492,16 +534,32 @@ export default function VendorProducts() {
           ))}
         </div>
         {selectedProducts.length > 0 && (
-          <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-600">{selectedProducts.length} selected</span>
+          <div className="flex items-center space-x-3 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
+            <span className="text-sm font-semibold text-blue-900">{selectedProducts.length} selected</span>
+            <div className="h-6 w-px bg-blue-300"></div>
+            <button
+              onClick={() => setShowBulkEdit(true)}
+              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-all flex items-center"
+            >
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Bulk Edit
+            </button>
             <button
               onClick={handleBulkDelete}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all flex items-center"
+              className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-all flex items-center"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              Delete Selected
+              Delete
+            </button>
+            <button
+              onClick={() => setSelectedProducts([])}
+              className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-all"
+            >
+              Clear
             </button>
           </div>
         )}
@@ -627,12 +685,32 @@ export default function VendorProducts() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleQuickEdit(product)}
+                          className="text-green-600 hover:text-green-800 font-medium flex items-center"
+                          title="Quick Edit"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Quick
+                        </button>
                         <button
                           onClick={() => handleOpenModal(product)}
                           className="text-blue-600 hover:text-blue-800 font-medium"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => handleDuplicate(product.id)}
+                          className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center"
+                          title="Duplicate Product"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Clone
                         </button>
                         <button
                           onClick={() => {
@@ -1213,6 +1291,33 @@ export default function VendorProducts() {
           onClose={() => {
             setShowVariantsModal(false);
             setSelectedProductForVariants(null);
+          }}
+        />
+      )}
+
+      {/* Quick Edit Panel */}
+      {showQuickEdit && quickEditProduct && (
+        <QuickEditPanel
+          product={quickEditProduct}
+          onClose={() => {
+            setShowQuickEdit(false);
+            setQuickEditProduct(null);
+          }}
+          onUpdate={() => {
+            fetchProducts();
+          }}
+        />
+      )}
+
+      {/* Bulk Edit Modal */}
+      {showBulkEdit && (
+        <BulkEditModal
+          selectedProductIds={selectedProducts}
+          categories={categories}
+          onClose={() => setShowBulkEdit(false)}
+          onUpdate={() => {
+            setSelectedProducts([]);
+            fetchProducts();
           }}
         />
       )}

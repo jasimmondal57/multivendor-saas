@@ -162,8 +162,12 @@ Route::prefix('v1')->group(function () {
             Route::get('products', [VendorProductController::class, 'index']);
             Route::post('products', [VendorProductController::class, 'store']);
             Route::post('products/bulk-import', [VendorProductController::class, 'bulkImport']);
+            Route::post('products/bulk-update', [VendorProductController::class, 'bulkUpdate']);
+            Route::post('products/bulk-delete', [VendorProductController::class, 'bulkDelete']);
             Route::get('products/low-stock', [VendorProductController::class, 'lowStockProducts']);
             Route::get('products/{id}', [VendorProductController::class, 'show']);
+            Route::post('products/{id}/duplicate', [VendorProductController::class, 'duplicate']);
+            Route::patch('products/{id}/quick-update', [VendorProductController::class, 'quickUpdate']);
             Route::put('products/{id}', [VendorProductController::class, 'update']);
             Route::delete('products/{id}', [VendorProductController::class, 'destroy']);
 

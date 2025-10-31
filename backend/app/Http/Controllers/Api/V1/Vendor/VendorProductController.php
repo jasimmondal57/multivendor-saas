@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1\Vendor;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class VendorProductController extends Controller
 {
@@ -254,11 +256,14 @@ class VendorProductController extends Controller
             $data['stock_status'] = $request->stock_quantity > 0 ? 'in_stock' : 'out_of_stock';
         }
 
+        // Set status to pending for admin approval
+        $data['status'] = 'pending';
+
         $product->update($data);
 
         return response()->json([
             'success' => true,
-            'message' => 'Product updated successfully',
+            'message' => 'Product updated successfully. Pending admin approval.',
             'data' => $product->fresh(['category']),
         ]);
     }
@@ -416,6 +421,218 @@ class VendorProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to import products: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Duplicate a product
+     */
+    public function duplicate(Request $request, $id)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $product = Product::where('id', $id)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Create duplicate product
+            $newProduct = $product->replicate();
+            $newProduct->name = $product->name . ' (Copy)';
+            $newProduct->sku = $product->sku . '-COPY-' . time();
+            $newProduct->slug = Str::slug($newProduct->name) . '-' . time();
+            $newProduct->status = 'pending'; // Requires admin approval
+            $newProduct->created_at = now();
+            $newProduct->updated_at = now();
+            $newProduct->save();
+
+            // Duplicate variants if any
+            $variants = ProductVariant::where('product_id', $product->id)->get();
+            foreach ($variants as $variant) {
+                $newVariant = $variant->replicate();
+                $newVariant->product_id = $newProduct->id;
+                $newVariant->sku = $variant->sku . '-COPY-' . time();
+                $newVariant->save();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Product duplicated successfully. Pending admin approval.',
+                'data' => $newProduct->load('category'),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to duplicate product: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk update products
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'product_ids' => 'required|array',
+            'product_ids.*' => 'required|integer',
+            'updates' => 'required|array',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $products = Product::whereIn('id', $request->product_ids)
+                ->where('vendor_id', $vendor->id)
+                ->get();
+
+            if ($products->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No products found',
+                ], 404);
+            }
+
+            $updated = 0;
+            foreach ($products as $product) {
+                // Set status to pending for admin approval
+                $updateData = $request->updates;
+                $updateData['status'] = 'pending';
+
+                $product->update($updateData);
+                $updated++;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$updated} products updated successfully. Pending admin approval.",
+                'data' => [
+                    'updated' => $updated,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update products: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete products
+     */
+    public function bulkDelete(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'product_ids' => 'required|array',
+            'product_ids.*' => 'required|integer',
+        ]);
+
+        try {
+            $deleted = Product::whereIn('id', $request->product_ids)
+                ->where('vendor_id', $vendor->id)
+                ->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$deleted} products deleted successfully.",
+                'data' => [
+                    'deleted' => $deleted,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete products: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Quick update (inline edit)
+     */
+    public function quickUpdate(Request $request, $id)
+    {
+        $vendor = $request->user()->vendor;
+
+        if (!$vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vendor profile not found',
+            ], 404);
+        }
+
+        $product = Product::where('id', $id)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        try {
+            // Only allow quick updates for specific fields
+            $allowedFields = ['stock_quantity', 'selling_price', 'mrp'];
+            $updates = $request->only($allowedFields);
+
+            // Set status to pending for admin approval
+            $updates['status'] = 'pending';
+
+            $product->update($updates);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Product updated successfully. Pending admin approval.',
+                'data' => $product->load('category'),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update product: ' . $e->getMessage(),
             ], 500);
         }
     }
