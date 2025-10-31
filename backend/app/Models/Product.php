@@ -40,6 +40,7 @@ class Product extends Model
         'is_active',
         'approved_at',
         'approved_by',
+        'rejection_reason',
         'ban_reason',
         'banned_at',
         'banned_by',
