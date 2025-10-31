@@ -1,11 +1,90 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
 import ProductVariantsModal from './ProductVariantsModal';
 import QuickEditPanel from './QuickEditPanel';
 import BulkEditModal from './BulkEditModal';
 // import VirtualizedProductList from './VirtualizedProductList'; // Temporarily disabled
+
+// Multi-Select Dropdown Component
+interface MultiSelectDropdownProps {
+  options: string[];
+  value: string[];
+  onChange: (values: string[]) => void;
+  placeholder: string;
+  required?: boolean;
+}
+
+function MultiSelectDropdown({ options, value, onChange, placeholder, required }: MultiSelectDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleOption = (option: string) => {
+    const newValue = value.includes(option)
+      ? value.filter(v => v !== option)
+      : [...value, option];
+    onChange(newValue);
+  };
+
+  const displayText = value.length === 0
+    ? placeholder
+    : value.length === 1
+    ? value[0]
+    : `${value.length} selected`;
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-2 text-left border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white flex items-center justify-between"
+      >
+        <span className={value.length === 0 ? 'text-gray-400' : 'text-gray-900'}>
+          {displayText}
+        </span>
+        <svg
+          className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'transform rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          {options.map((option) => (
+            <label
+              key={option}
+              className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={value.includes(option)}
+                onChange={() => toggleOption(option)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+              />
+              <span className="text-sm text-gray-700">{option}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Product {
   id: number;
@@ -1128,28 +1207,13 @@ export default function VendorProducts() {
                         )}
 
                         {attr.input_type === 'multi_select' && attr.options && (
-                          <>
-                            <select
-                              multiple
-                              required={attr.is_required}
-                              value={productAttributes[attr.id] || []}
-                              onChange={(e) => {
-                                const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-                                handleAttributeChange(attr.id, selectedOptions);
-                              }}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              size={Math.min(attr.options.length, 5)}
-                            >
-                              {attr.options.map((option) => (
-                                <option key={option} value={option}>
-                                  {option}
-                                </option>
-                              ))}
-                            </select>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Hold Ctrl (Windows) or Cmd (Mac) to select multiple options
-                            </p>
-                          </>
+                          <MultiSelectDropdown
+                            options={attr.options}
+                            value={productAttributes[attr.id] || []}
+                            onChange={(values) => handleAttributeChange(attr.id, values)}
+                            placeholder={`Select ${attr.name.toLowerCase()}`}
+                            required={attr.is_required}
+                          />
                         )}
 
                         {attr.input_type === 'color' && (
