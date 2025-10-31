@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\ProductVariant;
+use App\Models\CategoryAttribute;
+use App\Models\ProductAttributeValue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -629,6 +631,122 @@ class VendorProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update product: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get category-specific attributes
+     */
+    public function getCategoryAttributes($categoryId)
+    {
+        try {
+            $attributes = CategoryAttribute::where('category_id', $categoryId)
+                ->orderBy('sort_order')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $attributes,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch category attributes: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product attribute values
+     */
+    public function getProductAttributes(Request $request, $productId)
+    {
+        $vendor = $request->user()->vendor;
+
+        $product = Product::where('id', $productId)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        try {
+            $attributeValues = ProductAttributeValue::where('product_id', $productId)
+                ->with('categoryAttribute')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $attributeValues,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch product attributes: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Save product attribute values
+     */
+    public function saveProductAttributes(Request $request, $productId)
+    {
+        $vendor = $request->user()->vendor;
+
+        $product = Product::where('id', $productId)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'attributes' => 'required|array',
+            'attributes.*.category_attribute_id' => 'required|exists:category_attributes,id',
+            'attributes.*.value' => 'required',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Delete existing attribute values
+            ProductAttributeValue::where('product_id', $productId)->delete();
+
+            // Create new attribute values
+            foreach ($request->attributes as $attr) {
+                // Skip empty values
+                if (empty($attr['value']) || $attr['value'] === '' || $attr['value'] === null) {
+                    continue;
+                }
+
+                ProductAttributeValue::create([
+                    'product_id' => $productId,
+                    'category_attribute_id' => $attr['category_attribute_id'],
+                    'value' => is_array($attr['value']) ? json_encode($attr['value']) : $attr['value'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Product attributes saved successfully',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save product attributes: ' . $e->getMessage(),
             ], 500);
         }
     }

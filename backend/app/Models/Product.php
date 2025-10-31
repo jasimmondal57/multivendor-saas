@@ -93,6 +93,11 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    public function attributeValues()
+    {
+        return $this->hasMany(ProductAttributeValue::class);
+    }
+
     public function scopeApproved($query)
     {
         return $query->where('status', 'approved');

@@ -178,6 +178,13 @@ Route::prefix('v1')->group(function () {
             Route::delete('products/{productId}/variants/{variantId}', [VendorProductVariantController::class, 'destroy']);
             Route::post('products/{productId}/variants/bulk-update-stock', [VendorProductVariantController::class, 'bulkUpdateStock']);
 
+            // Category Attributes
+            Route::get('categories/{categoryId}/attributes', [VendorProductController::class, 'getCategoryAttributes']);
+
+            // Product Attributes
+            Route::get('products/{productId}/attributes', [VendorProductController::class, 'getProductAttributes']);
+            Route::post('products/{productId}/attributes', [VendorProductController::class, 'saveProductAttributes']);
+
             // Orders
             Route::get('orders', [VendorOrderController::class, 'index']);
             Route::get('orders/{id}', [VendorOrderController::class, 'show']);

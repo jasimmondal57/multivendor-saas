@@ -35,6 +35,20 @@ interface Category {
   slug: string;
 }
 
+interface CategoryAttribute {
+  id: number;
+  category_id: number;
+  name: string;
+  slug: string;
+  input_type: 'text' | 'number' | 'select' | 'multi_select' | 'color' | 'textarea';
+  options: string[] | null;
+  is_required: boolean;
+  is_filterable: boolean;
+  is_variant: boolean;
+  sort_order: number;
+  help_text: string | null;
+}
+
 interface ProductFormData {
   category_id: string;
   name: string;
@@ -79,6 +93,8 @@ export default function VendorProducts() {
   const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
+  const [productAttributes, setProductAttributes] = useState<Record<number, any>>({});
   const [formData, setFormData] = useState<ProductFormData>({
     category_id: '',
     name: '',
@@ -157,7 +173,46 @@ export default function VendorProducts() {
     }
   };
 
-  const handleOpenModal = (product?: Product) => {
+  const fetchCategoryAttributes = async (categoryId: number) => {
+    try {
+      const response = await api.get(`/v1/vendor/categories/${categoryId}/attributes`);
+      if (response.data.success) {
+        setCategoryAttributes(response.data.data || []);
+        // Initialize product attributes with empty values
+        const initialAttributes: Record<number, any> = {};
+        response.data.data.forEach((attr: CategoryAttribute) => {
+          initialAttributes[attr.id] = attr.input_type === 'multi_select' ? [] : '';
+        });
+        setProductAttributes(initialAttributes);
+      }
+    } catch (error) {
+      console.error('Failed to fetch category attributes:', error);
+      setCategoryAttributes([]);
+      setProductAttributes({});
+    }
+  };
+
+  const fetchProductAttributes = async (productId: number) => {
+    try {
+      const response = await api.get(`/v1/vendor/products/${productId}/attributes`);
+      if (response.data.success) {
+        const attrs: Record<number, any> = {};
+        response.data.data.forEach((attr: any) => {
+          // Parse JSON values for multi_select
+          try {
+            attrs[attr.category_attribute_id] = JSON.parse(attr.value);
+          } catch {
+            attrs[attr.category_attribute_id] = attr.value;
+          }
+        });
+        setProductAttributes(attrs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch product attributes:', error);
+    }
+  };
+
+  const handleOpenModal = async (product?: Product) => {
     if (product) {
       setEditingProduct(product);
       setFormData({
@@ -175,9 +230,14 @@ export default function VendorProducts() {
         hsn_code: product.hsn_code || '',
         gst_percentage: product.gst_percentage?.toString() || '18',
       });
+      // Fetch category attributes and product attributes
+      await fetchCategoryAttributes(product.category.id);
+      await fetchProductAttributes(product.id);
     } else {
       setEditingProduct(null);
       setUploadedImages([]);
+      setCategoryAttributes([]);
+      setProductAttributes({});
       setFormData({
         category_id: '',
         name: '',
@@ -309,6 +369,45 @@ export default function VendorProducts() {
     setEditingProduct(null);
   };
 
+  const handleCategoryChange = async (categoryId: string) => {
+    setFormData({ ...formData, category_id: categoryId });
+    if (categoryId) {
+      await fetchCategoryAttributes(parseInt(categoryId));
+    } else {
+      setCategoryAttributes([]);
+      setProductAttributes({});
+    }
+  };
+
+  const handleAttributeChange = (attributeId: number, value: any) => {
+    setProductAttributes(prev => ({
+      ...prev,
+      [attributeId]: value,
+    }));
+  };
+
+  const saveProductAttributes = async (productId: number) => {
+    try {
+      const attributes = Object.entries(productAttributes)
+        .filter(([_, value]) => {
+          // Filter out empty values
+          if (Array.isArray(value)) return value.length > 0;
+          return value !== '' && value !== null && value !== undefined;
+        })
+        .map(([attributeId, value]) => ({
+          category_attribute_id: parseInt(attributeId),
+          value: value,
+        }));
+
+      if (attributes.length > 0) {
+        await api.post(`/v1/vendor/products/${productId}/attributes`, { attributes });
+      }
+    } catch (error) {
+      console.error('Failed to save product attributes:', error);
+      // Don't throw error, just log it
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -325,17 +424,33 @@ export default function VendorProducts() {
         gst_percentage: parseFloat(formData.gst_percentage),
       };
 
+      let productId: number;
+
       if (editingProduct) {
         const response = await api.put(`/v1/vendor/products/${editingProduct.id}`, payload);
         if (response.data.success) {
-          alert('Product updated successfully!');
+          productId = editingProduct.id;
+
+          // Save product attributes
+          if (categoryAttributes.length > 0) {
+            await saveProductAttributes(productId);
+          }
+
+          alert('Product updated successfully! Pending admin approval.');
           handleCloseModal();
           fetchProducts();
         }
       } else {
         const response = await api.post('/v1/vendor/products', payload);
         if (response.data.success) {
-          alert('Product created successfully! Waiting for admin approval.');
+          productId = response.data.data.id;
+
+          // Save product attributes
+          if (categoryAttributes.length > 0) {
+            await saveProductAttributes(productId);
+          }
+
+          alert('Product created successfully! Pending admin approval.');
           handleCloseModal();
           fetchProducts();
         }
@@ -911,7 +1026,7 @@ export default function VendorProducts() {
                     <select
                       required
                       value={formData.category_id}
-                      onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                      onChange={(e) => handleCategoryChange(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select a category</option>
@@ -951,6 +1066,107 @@ export default function VendorProducts() {
                   </div>
                 </div>
               </div>
+
+              {/* Category-Specific Attributes */}
+              {categoryAttributes.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Attributes</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {categoryAttributes.map((attr) => (
+                      <div key={attr.id} className={attr.input_type === 'textarea' ? 'md:col-span-2' : ''}>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {attr.name} {attr.is_required && <span className="text-red-500">*</span>}
+                        </label>
+
+                        {attr.input_type === 'text' && (
+                          <input
+                            type="text"
+                            required={attr.is_required}
+                            value={productAttributes[attr.id] || ''}
+                            onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder={`Enter ${attr.name.toLowerCase()}`}
+                          />
+                        )}
+
+                        {attr.input_type === 'number' && (
+                          <input
+                            type="number"
+                            required={attr.is_required}
+                            value={productAttributes[attr.id] || ''}
+                            onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder={`Enter ${attr.name.toLowerCase()}`}
+                          />
+                        )}
+
+                        {attr.input_type === 'textarea' && (
+                          <textarea
+                            rows={3}
+                            required={attr.is_required}
+                            value={productAttributes[attr.id] || ''}
+                            onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder={`Enter ${attr.name.toLowerCase()}`}
+                          />
+                        )}
+
+                        {attr.input_type === 'select' && attr.options && (
+                          <select
+                            required={attr.is_required}
+                            value={productAttributes[attr.id] || ''}
+                            onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="">Select {attr.name.toLowerCase()}</option>
+                            {attr.options.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        {attr.input_type === 'multi_select' && attr.options && (
+                          <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                            {attr.options.map((option) => (
+                              <label key={option} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                <input
+                                  type="checkbox"
+                                  checked={(productAttributes[attr.id] || []).includes(option)}
+                                  onChange={(e) => {
+                                    const currentValues = productAttributes[attr.id] || [];
+                                    const newValues = e.target.checked
+                                      ? [...currentValues, option]
+                                      : currentValues.filter((v: string) => v !== option);
+                                    handleAttributeChange(attr.id, newValues);
+                                  }}
+                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-sm text-gray-700">{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+
+                        {attr.input_type === 'color' && (
+                          <input
+                            type="color"
+                            required={attr.is_required}
+                            value={productAttributes[attr.id] || '#000000'}
+                            onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                            className="w-full h-10 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        )}
+
+                        {attr.help_text && (
+                          <p className="text-xs text-gray-500 mt-1">{attr.help_text}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Product Images */}
               <div>

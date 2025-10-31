@@ -55,4 +55,9 @@ class Category extends Model
     {
         return $this->hasMany(Category::class, 'parent_id');
     }
+
+    public function attributes()
+    {
+        return $this->hasMany(CategoryAttribute::class)->orderBy('sort_order');
+    }
 }
