@@ -164,9 +164,19 @@ class AdminDashboardController extends Controller
     {
         $query = Product::with(['category', 'vendor.user']);
 
-        // Filter by approval status
+        // Filter by approval status (using 'status' field)
         if ($request->has('approval_status')) {
-            $query->where('approval_status', $request->approval_status);
+            // Map frontend approval_status to backend status field
+            $statusMap = [
+                'pending' => 'pending_review',
+                'approved' => 'approved',
+                'rejected' => 'rejected',
+            ];
+
+            $approvalStatus = $request->approval_status;
+            if (isset($statusMap[$approvalStatus])) {
+                $query->where('status', $statusMap[$approvalStatus]);
+            }
         }
 
         // Search
@@ -188,7 +198,11 @@ class AdminDashboardController extends Controller
     public function approveProduct($productId)
     {
         $product = Product::findOrFail($productId);
-        $product->update(['approval_status' => 'approved']);
+        $product->update([
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => auth()->id(),
+        ]);
 
         return response()->json([
             'success' => true,
@@ -203,7 +217,7 @@ class AdminDashboardController extends Controller
     {
         $product = Product::findOrFail($productId);
         $product->update([
-            'approval_status' => 'rejected',
+            'status' => 'rejected',
             'rejection_reason' => $request->reason ?? 'Not specified',
         ]);
 

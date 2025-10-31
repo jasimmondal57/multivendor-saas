@@ -152,7 +152,14 @@ export default function AdminDashboardPage() {
           const productParams: any = { page: 1 };
           if (productTab !== 'all') productParams.approval_status = productTab;
           const productsRes = await adminService.getProducts(productParams);
-          if (productsRes.success) setProducts(productsRes.data.data);
+          if (productsRes.success) {
+            // Map backend 'status' field to frontend 'approval_status' for consistency
+            const mappedProducts = productsRes.data.data.map((p: any) => ({
+              ...p,
+              approval_status: p.status === 'pending_review' ? 'pending' : p.status
+            }));
+            setProducts(mappedProducts);
+          }
           break;
         case 'orders':
           const orderParams: any = { page: 1 };

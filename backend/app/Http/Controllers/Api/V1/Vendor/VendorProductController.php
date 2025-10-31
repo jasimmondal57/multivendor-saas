@@ -195,7 +195,7 @@ class VendorProductController extends Controller
             'return_period_days' => 7, // Default value, controlled by platform settings
             'hsn_code' => $request->hsn_code,
             'gst_percentage' => $request->get('gst_percentage', 18),
-            'status' => 'pending', // Requires admin approval
+            'status' => 'pending_review', // Requires admin approval
         ]);
 
         return response()->json([
@@ -264,8 +264,8 @@ class VendorProductController extends Controller
             $data['stock_status'] = $request->stock_quantity > 0 ? 'in_stock' : 'out_of_stock';
         }
 
-        // Set status to pending for admin approval
-        $data['status'] = 'pending';
+        // Set status to pending_review for admin approval
+        $data['status'] = 'pending_review';
 
         $product->update($data);
 
@@ -407,7 +407,7 @@ class VendorProductController extends Controller
                         'cost_price' => $data['cost_price'] ?? null,
                         'stock_quantity' => $data['stock'] ?? 0,
                         'stock_status' => ($data['stock'] ?? 0) > 0 ? 'in_stock' : 'out_of_stock',
-                        'status' => 'pending', // All imported products need approval
+                        'status' => 'pending_review', // All imported products need approval
                     ]);
                     $imported++;
                 } catch (\Exception $e) {
@@ -466,7 +466,7 @@ class VendorProductController extends Controller
             $newProduct->name = $product->name . ' (Copy)';
             $newProduct->sku = $product->sku . '-COPY-' . time();
             $newProduct->slug = Str::slug($newProduct->name) . '-' . time();
-            $newProduct->status = 'pending'; // Requires admin approval
+            $newProduct->status = 'pending_review'; // Requires admin approval
             $newProduct->created_at = now();
             $newProduct->updated_at = now();
             $newProduct->save();
@@ -532,9 +532,9 @@ class VendorProductController extends Controller
 
             $updated = 0;
             foreach ($products as $product) {
-                // Set status to pending for admin approval
+                // Set status to pending_review for admin approval
                 $updateData = $request->updates;
-                $updateData['status'] = 'pending';
+                $updateData['status'] = 'pending_review';
 
                 $product->update($updateData);
                 $updated++;
@@ -627,8 +627,8 @@ class VendorProductController extends Controller
             $allowedFields = ['stock_quantity', 'selling_price', 'mrp'];
             $updates = $request->only($allowedFields);
 
-            // Set status to pending for admin approval
-            $updates['status'] = 'pending';
+            // Set status to pending_review for admin approval
+            $updates['status'] = 'pending_review';
 
             $product->update($updates);
 
