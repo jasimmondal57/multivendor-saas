@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ReturnOrder;
 use App\Services\NotificationService;
+use App\Services\DelhiveryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -12,10 +13,12 @@ use Illuminate\Support\Facades\Validator;
 class AdminReturnController extends Controller
 {
     protected $notificationService;
+    protected $delhiveryService;
 
-    public function __construct(NotificationService $notificationService)
+    public function __construct(NotificationService $notificationService, DelhiveryService $delhiveryService)
     {
         $this->notificationService = $notificationService;
+        $this->delhiveryService = $delhiveryService;
     }
 
     /**
@@ -105,7 +108,7 @@ class AdminReturnController extends Controller
     }
 
     /**
-     * Approve single return request
+     * Approve single return request and auto-schedule Delhivery pickup
      */
     public function approve(Request $request, $id)
     {
@@ -113,11 +116,12 @@ class AdminReturnController extends Controller
 
         $return = ReturnOrder::where('id', $id)
             ->where('status', 'pending_approval')
-            ->with('customer', 'vendor')
+            ->with(['customer', 'vendor', 'order', 'orderItem.product'])
             ->firstOrFail();
 
         DB::beginTransaction();
         try {
+            // Update return status to approved
             $return->update([
                 'status' => 'approved',
                 'approved_at' => now(),
@@ -131,6 +135,43 @@ class AdminReturnController extends Controller
                 $user->id
             );
 
+            // Auto-schedule Delhivery pickup (pickup date = tomorrow)
+            $pickupDate = now()->addDay()->format('Y-m-d');
+
+            try {
+                // Create Delhivery shipment for return pickup
+                $shipmentData = $this->delhiveryService->createShipment(
+                    $return->order,
+                    $return->orderItem,
+                    'return_pickup'
+                );
+
+                if ($shipmentData && isset($shipmentData['waybill'])) {
+                    $return->update([
+                        'status' => 'pickup_scheduled',
+                        'pickup_awb_number' => $shipmentData['waybill'],
+                        'pickup_tracking_id' => $shipmentData['waybill'],
+                        'pickup_scheduled_at' => now(),
+                        'courier_partner' => 'Delhivery',
+                    ]);
+
+                    $return->addTrackingHistory(
+                        'pickup_scheduled',
+                        'Pickup scheduled with Delhivery for ' . $pickupDate,
+                        null,
+                        'system',
+                        null
+                    );
+
+                    // Send pickup scheduled notification
+                    $this->notificationService->sendPickupScheduledNotification($return, $return->customer);
+                }
+            } catch (\Exception $e) {
+                // If Delhivery fails, keep status as approved
+                // Admin can manually schedule later
+                \Log::error('Failed to auto-schedule Delhivery pickup: ' . $e->getMessage());
+            }
+
             DB::commit();
 
             // Send notification to customer
@@ -138,7 +179,7 @@ class AdminReturnController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Return request approved successfully',
+                'message' => 'Return request approved and pickup scheduled successfully',
                 'data' => $return->fresh(),
             ]);
         } catch (\Exception $e) {

@@ -92,13 +92,11 @@ export default function VendorReturns() {
   });
   const [loading, setLoading] = useState(true);
   const [selectedReturn, setSelectedReturn] = useState<ReturnOrder | null>(null);
-  const [showPickupModal, setShowPickupModal] = useState(false);
   const [showInspectionModal, setShowInspectionModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-  const [pickupDate, setPickupDate] = useState('');
   const [inspectionPassed, setInspectionPassed] = useState(true);
   const [inspectionNotes, setInspectionNotes] = useState('');
   const [refundMethod, setRefundMethod] = useState('original_payment');
@@ -138,50 +136,6 @@ export default function VendorReturns() {
       console.error('Error fetching returns:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSchedulePickup = async () => {
-    if (!selectedReturn || !pickupDate) {
-      alert('Please select a pickup date');
-      return;
-    }
-
-    try {
-      const response = await api.post(`/v1/vendor/returns/${selectedReturn.id}/schedule-pickup`, {
-        pickup_date: pickupDate,
-      });
-
-      if (response.data.success) {
-        alert('Pickup scheduled successfully');
-        setShowPickupModal(false);
-        setPickupDate('');
-        setSelectedReturn(null);
-        fetchReturns();
-        fetchStats();
-      } else {
-        alert(response.data.message || 'Failed to schedule pickup');
-      }
-    } catch (error: any) {
-      console.error('Error scheduling pickup:', error);
-      alert(error.response?.data?.message || 'Failed to schedule pickup');
-    }
-  };
-
-  const handleMarkReceived = async (returnOrder: ReturnOrder) => {
-    try {
-      const response = await api.post(`/v1/vendor/returns/${returnOrder.id}/mark-received`);
-
-      if (response.data.success) {
-        alert('Return marked as received');
-        fetchReturns();
-        fetchStats();
-      } else {
-        alert(response.data.message || 'Failed to mark as received');
-      }
-    } catch (error: any) {
-      console.error('Error marking as received:', error);
-      alert(error.response?.data?.message || 'Failed to mark as received');
     }
   };
 
@@ -419,38 +373,20 @@ export default function VendorReturns() {
                 )}
               </div>
 
-              {/* Action Buttons - Context Aware */}
+              {/* Action Buttons - Inspection & Refund Only */}
               <div className="flex flex-wrap gap-2">
-                {returnOrder.status === 'approved' && (
-                  <button
-                    onClick={() => {
-                      setSelectedReturn(returnOrder);
-                      setShowPickupModal(true);
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    Schedule Pickup
-                  </button>
-                )}
-
-                {['in_transit', 'picked_up'].includes(returnOrder.status) && (
-                  <button
-                    onClick={() => handleMarkReceived(returnOrder)}
-                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
-                  >
-                    Mark as Received
-                  </button>
-                )}
-
                 {returnOrder.status === 'received' && (
                   <button
                     onClick={() => {
                       setSelectedReturn(returnOrder);
                       setShowInspectionModal(true);
                     }}
-                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium flex items-center gap-2"
                   >
-                    Complete Inspection
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Inspect Product
                   </button>
                 )}
 
@@ -460,17 +396,23 @@ export default function VendorReturns() {
                       setSelectedReturn(returnOrder);
                       setShowRefundModal(true);
                     }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
                   >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
                     Initiate Refund
                   </button>
                 )}
 
                 <button
                   onClick={() => fetchTimeline(returnOrder)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2"
                 >
-                  View Timeline
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  View Tracking
                 </button>
 
                 <button
