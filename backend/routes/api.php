@@ -16,6 +16,9 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Vendor\VendorOnboardingController;
 use App\Http\Controllers\Api\V1\Vendor\VendorLeaveManagementController;
 use App\Http\Controllers\Api\V1\Vendor\VendorProductController;
+use App\Http\Controllers\Api\V1\Vendor\VendorPayoutController;
+use App\Http\Controllers\Api\V1\Vendor\VendorSettingsController;
+use App\Http\Controllers\Api\V1\Vendor\VendorAnalyticsController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\SettingsController;
@@ -177,6 +180,25 @@ Route::prefix('v1')->group(function () {
             Route::get('leaves/{id}', [VendorLeaveManagementController::class, 'show']);
             Route::put('leaves/{id}', [VendorLeaveManagementController::class, 'update']);
             Route::delete('leaves/{id}', [VendorLeaveManagementController::class, 'cancel']);
+
+            // Payouts
+            Route::get('payouts', [VendorPayoutController::class, 'index']);
+            Route::get('payouts/statistics', [VendorPayoutController::class, 'statistics']);
+            Route::get('payouts/{id}', [VendorPayoutController::class, 'show']);
+
+            // Settings
+            Route::get('settings/profile', [VendorSettingsController::class, 'getProfile']);
+            Route::put('settings/profile', [VendorSettingsController::class, 'updateProfile']);
+            Route::put('settings/store', [VendorSettingsController::class, 'updateStore']);
+            Route::put('settings/bank', [VendorSettingsController::class, 'updateBankDetails']);
+            Route::get('settings/notifications', [VendorSettingsController::class, 'getNotificationPreferences']);
+            Route::put('settings/notifications', [VendorSettingsController::class, 'updateNotificationPreferences']);
+
+            // Analytics
+            Route::get('analytics/statistics', [VendorAnalyticsController::class, 'statistics']);
+            Route::get('analytics/sales-trend', [VendorAnalyticsController::class, 'salesTrend']);
+            Route::get('analytics/top-products', [VendorAnalyticsController::class, 'topProducts']);
+            Route::get('analytics/category-sales', [VendorAnalyticsController::class, 'categorySales']);
         });
 
         // Admin routes

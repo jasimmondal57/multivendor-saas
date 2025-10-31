@@ -10,19 +10,73 @@ interface Product {
   category: { id: number; name: string };
   mrp: number;
   selling_price: number;
+  cost_price?: number;
   stock_quantity: number;
   stock_status: string;
   status: string;
+  description?: string;
+  short_description?: string;
+  weight?: number;
+  hsn_code?: string;
+  gst_percentage?: number;
+  is_returnable?: boolean;
+  return_period_days?: number;
+  low_stock_threshold?: number;
   created_at: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface ProductFormData {
+  category_id: string;
+  name: string;
+  sku: string;
+  description: string;
+  short_description: string;
+  mrp: string;
+  selling_price: string;
+  cost_price: string;
+  stock_quantity: string;
+  low_stock_threshold: string;
+  weight: string;
+  hsn_code: string;
+  gst_percentage: string;
+  is_returnable: boolean;
+  return_period_days: string;
 }
 
 export default function VendorProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [showModal, setShowModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState<ProductFormData>({
+    category_id: '',
+    name: '',
+    sku: '',
+    description: '',
+    short_description: '',
+    mrp: '',
+    selling_price: '',
+    cost_price: '',
+    stock_quantity: '',
+    low_stock_threshold: '10',
+    weight: '',
+    hsn_code: '',
+    gst_percentage: '18',
+    is_returnable: true,
+    return_period_days: '7',
+  });
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, [filter]);
 
   const fetchProducts = async () => {
@@ -40,6 +94,102 @@ export default function VendorProducts() {
       console.error('Failed to fetch products:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/v1/categories');
+      if (response.data.success) {
+        setCategories(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
+
+  const handleOpenModal = (product?: Product) => {
+    if (product) {
+      setEditingProduct(product);
+      setFormData({
+        category_id: product.category.id.toString(),
+        name: product.name,
+        sku: product.sku,
+        description: product.description || '',
+        short_description: product.short_description || '',
+        mrp: product.mrp.toString(),
+        selling_price: product.selling_price.toString(),
+        cost_price: product.cost_price?.toString() || '',
+        stock_quantity: product.stock_quantity.toString(),
+        low_stock_threshold: product.low_stock_threshold?.toString() || '10',
+        weight: product.weight?.toString() || '',
+        hsn_code: product.hsn_code || '',
+        gst_percentage: product.gst_percentage?.toString() || '18',
+        is_returnable: product.is_returnable ?? true,
+        return_period_days: product.return_period_days?.toString() || '7',
+      });
+    } else {
+      setEditingProduct(null);
+      setFormData({
+        category_id: '',
+        name: '',
+        sku: '',
+        description: '',
+        short_description: '',
+        mrp: '',
+        selling_price: '',
+        cost_price: '',
+        stock_quantity: '',
+        low_stock_threshold: '10',
+        weight: '',
+        hsn_code: '',
+        gst_percentage: '18',
+        is_returnable: true,
+        return_period_days: '7',
+      });
+    }
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingProduct(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const payload = {
+        ...formData,
+        category_id: parseInt(formData.category_id),
+        mrp: parseFloat(formData.mrp),
+        selling_price: parseFloat(formData.selling_price),
+        cost_price: formData.cost_price ? parseFloat(formData.cost_price) : undefined,
+        stock_quantity: parseInt(formData.stock_quantity),
+        low_stock_threshold: parseInt(formData.low_stock_threshold),
+        weight: formData.weight ? parseFloat(formData.weight) : undefined,
+        gst_percentage: parseFloat(formData.gst_percentage),
+        return_period_days: parseInt(formData.return_period_days),
+      };
+
+      if (editingProduct) {
+        const response = await api.put(`/v1/vendor/products/${editingProduct.id}`, payload);
+        if (response.data.success) {
+          alert('Product updated successfully!');
+          handleCloseModal();
+          fetchProducts();
+        }
+      } else {
+        const response = await api.post('/v1/vendor/products', payload);
+        if (response.data.success) {
+          alert('Product created successfully! Waiting for admin approval.');
+          handleCloseModal();
+          fetchProducts();
+        }
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to save product');
     }
   };
 
@@ -85,7 +235,7 @@ export default function VendorProducts() {
           <p className="text-gray-600">Manage your product inventory</p>
         </div>
         <button
-          onClick={() => alert('Add Product feature coming soon!')}
+          onClick={() => handleOpenModal()}
           className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +312,7 @@ export default function VendorProducts() {
                     <td className="px-6 py-4 text-sm">
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => alert('Edit feature coming soon!')}
+                          onClick={() => handleOpenModal(product)}
                           className="text-blue-600 hover:text-blue-800 font-medium"
                         >
                           Edit
@@ -187,7 +337,7 @@ export default function VendorProducts() {
             </svg>
             <p>No products found</p>
             <button
-              onClick={() => alert('Add Product feature coming soon!')}
+              onClick={() => handleOpenModal()}
               className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Add Your First Product
@@ -195,6 +345,290 @@ export default function VendorProducts() {
           </div>
         )}
       </div>
+
+      {/* Add/Edit Product Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </h2>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter product name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      SKU <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter SKU"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={formData.category_id}
+                      onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select a category</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Short Description
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.short_description}
+                      onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Brief product description"
+                      maxLength={500}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Description
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Detailed product description"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Pricing</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      MRP <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      step="0.01"
+                      min="0"
+                      value={formData.mrp}
+                      onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Selling Price <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      step="0.01"
+                      min="0"
+                      value={formData.selling_price}
+                      onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Cost Price
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.cost_price}
+                      onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Inventory */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Inventory</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Stock Quantity <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={formData.stock_quantity}
+                      onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Low Stock Threshold
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.low_stock_threshold}
+                      onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Weight (kg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.weight}
+                      onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      HSN Code
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.hsn_code}
+                      onChange={(e) => setFormData({ ...formData, hsn_code: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter HSN code"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      GST Percentage
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={formData.gst_percentage}
+                      onChange={(e) => setFormData({ ...formData, gst_percentage: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="18"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Return Period (days)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.return_period_days}
+                      onChange={(e) => setFormData({ ...formData, return_period_days: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="7"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_returnable}
+                        onChange={(e) => setFormData({ ...formData, is_returnable: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Product is returnable</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                >
+                  {editingProduct ? 'Update Product' : 'Create Product'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

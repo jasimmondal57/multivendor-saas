@@ -1,0 +1,73 @@
+    /**
+     * Update vendor status
+     */
+    public function updateVendorStatus(Request $request, $vendorId)
+    {
+        $request->validate([
+            'status' => 'required|in:active,inactive,suspended',
+        ]);
+
+        $vendor = Vendor::with('products')->findOrFail($vendorId);
+
+        $updateData = ['status' => $request->status];
+
+        // Clear suspension data if activating
+        if ($request->status === 'active') {
+            $updateData['suspension_reason'] = null;
+            $updateData['suspended_at'] = null;
+            $updateData['suspended_by'] = null;
+
+            // Restore product availability
+            foreach ($vendor->products as $product) {
+                if ($product->unavailability_reason && 
+                    (str_contains($product->unavailability_reason, 'Vendor suspended') ||
+                     str_contains($product->unavailability_reason, 'Vendor temporarily inactive'))) {
+                    $product->restoreAvailability();
+                }
+            }
+        } elseif ($request->status === 'inactive') {
+            // Mark products as temporarily unavailable
+            foreach ($vendor->products as $product) {
+                if ($product->stock_status !== 'out_of_stock' && empty($product->unavailability_reason)) {
+                    $product->markAsTemporarilyUnavailable("Vendor temporarily inactive");
+                }
+            }
+        }
+
+        $vendor->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vendor status updated successfully',
+        ]);
+    }
+
+    /**
+     * Suspend vendor
+     */
+    public function suspendVendor(Request $request, $vendorId)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $vendor = Vendor::with('products')->findOrFail($vendorId);
+        $vendor->update([
+            'status' => 'suspended',
+            'suspension_reason' => $request->reason,
+            'suspended_at' => now(),
+            'suspended_by' => $request->user()->id,
+        ]);
+
+        // Mark all vendor products as temporarily unavailable
+        foreach ($vendor->products as $product) {
+            if ($product->stock_status !== 'out_of_stock' && empty($product->unavailability_reason)) {
+                $product->markAsTemporarilyUnavailable("Vendor suspended: " . $request->reason);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vendor suspended successfully',
+        ]);
+    }
