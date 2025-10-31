@@ -116,7 +116,7 @@ export default function VendorReturns() {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/vendor/returns/statistics');
+      const response = await api.get('/v1/vendor/returns/statistics');
       if (response.data.success) {
         setStats(response.data.data);
       }
@@ -138,7 +138,7 @@ export default function VendorReturns() {
       };
 
       const status = statusMap[activeTab] || activeTab;
-      const response = await api.get(`/vendor/returns?status=${status}`);
+      const response = await api.get(`/v1/vendor/returns?status=${status}`);
 
       if (response.data.success) {
         setReturns(response.data.data.data || []);
@@ -152,7 +152,7 @@ export default function VendorReturns() {
 
   const handleApprove = async (returnOrder: ReturnOrder) => {
     try {
-      const response = await api.post(`/vendor/returns/${returnOrder.id}/approve`);
+      const response = await api.post(`/v1/vendor/returns/${returnOrder.id}/approve`);
 
       if (response.data.success) {
         alert('Return request approved successfully');
@@ -175,7 +175,7 @@ export default function VendorReturns() {
     }
 
     try {
-      const response = await api.post(`/vendor/returns/${selectedReturn.id}/reject`, {
+      const response = await api.post(`/v1/vendor/returns/${selectedReturn.id}/reject`, {
         reason: rejectionReason,
       });
 
@@ -202,7 +202,7 @@ export default function VendorReturns() {
     }
 
     try {
-      const response = await api.post(`/vendor/returns/${selectedReturn.id}/schedule-pickup`, {
+      const response = await api.post(`/v1/vendor/returns/${selectedReturn.id}/schedule-pickup`, {
         pickup_date: pickupDate,
       });
 
@@ -224,7 +224,7 @@ export default function VendorReturns() {
 
   const handleMarkReceived = async (returnOrder: ReturnOrder) => {
     try {
-      const response = await api.post(`/vendor/returns/${returnOrder.id}/mark-received`);
+      const response = await api.post(`/v1/vendor/returns/${returnOrder.id}/mark-received`);
 
       if (response.data.success) {
         alert('Return marked as received');
@@ -243,7 +243,7 @@ export default function VendorReturns() {
     if (!selectedReturn) return;
 
     try {
-      const response = await api.post(`/vendor/returns/${selectedReturn.id}/complete-inspection`, {
+      const response = await api.post(`/v1/vendor/returns/${selectedReturn.id}/complete-inspection`, {
         passed: inspectionPassed,
         notes: inspectionNotes,
       });
@@ -268,7 +268,7 @@ export default function VendorReturns() {
     if (!selectedReturn) return;
 
     try {
-      const response = await api.post(`/vendor/returns/${selectedReturn.id}/initiate-refund`, {
+      const response = await api.post(`/v1/vendor/returns/${selectedReturn.id}/initiate-refund`, {
         refund_method: refundMethod,
       });
 
@@ -289,7 +289,7 @@ export default function VendorReturns() {
 
   const fetchTimeline = async (returnOrder: ReturnOrder) => {
     try {
-      const response = await api.get(`/vendor/returns/${returnOrder.id}/timeline`);
+      const response = await api.get(`/v1/vendor/returns/${returnOrder.id}/timeline`);
 
       if (response.data.success) {
         setTimeline(response.data.data.timeline || []);
