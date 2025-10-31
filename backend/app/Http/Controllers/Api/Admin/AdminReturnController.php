@@ -105,6 +105,103 @@ class AdminReturnController extends Controller
     }
 
     /**
+     * Approve single return request
+     */
+    public function approve(Request $request, $id)
+    {
+        $user = $request->user();
+
+        $return = ReturnOrder::where('id', $id)
+            ->where('status', 'pending_approval')
+            ->with('customer', 'vendor')
+            ->firstOrFail();
+
+        DB::beginTransaction();
+        try {
+            $return->update([
+                'status' => 'approved',
+                'approved_at' => now(),
+            ]);
+
+            $return->addTrackingHistory(
+                'approved',
+                'Return request approved by admin',
+                null,
+                'admin',
+                $user->id
+            );
+
+            DB::commit();
+
+            // Send notification to customer
+            $this->notificationService->sendReturnApprovedNotification($return, $return->customer);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Return request approved successfully',
+                'data' => $return->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve return: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject single return request
+     */
+    public function reject(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $user = $request->user();
+
+        $return = ReturnOrder::where('id', $id)
+            ->where('status', 'pending_approval')
+            ->with('customer', 'vendor')
+            ->firstOrFail();
+
+        DB::beginTransaction();
+        try {
+            $return->update([
+                'status' => 'rejected',
+                'rejected_at' => now(),
+                'rejection_reason' => $request->reason,
+            ]);
+
+            $return->addTrackingHistory(
+                'rejected',
+                'Return request rejected by admin: ' . $request->reason,
+                null,
+                'admin',
+                $user->id
+            );
+
+            DB::commit();
+
+            // Send notification to customer
+            $this->notificationService->sendReturnRejectedNotification($return, $return->customer);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Return request rejected successfully',
+                'data' => $return->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject return: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Bulk approve return requests
      */
     public function bulkApprove(Request $request)

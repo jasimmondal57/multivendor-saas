@@ -216,12 +216,10 @@ Route::prefix('v1')->group(function () {
             Route::post('orders/{orderId}/items/{itemId}/generate-label', [VendorOrderController::class, 'generateShippingLabel']);
             Route::get('orders/{orderId}/items/{itemId}/timeline', [VendorOrderController::class, 'getOrderTimeline']);
 
-            // Return Orders Management
+            // Return Orders Management (Tracking Only - Admin approves/rejects)
             Route::get('returns/statistics', [VendorReturnController::class, 'statistics']);
             Route::get('returns', [VendorReturnController::class, 'index']);
             Route::get('returns/{id}', [VendorReturnController::class, 'show']);
-            Route::post('returns/{id}/approve', [VendorReturnController::class, 'approve']);
-            Route::post('returns/{id}/reject', [VendorReturnController::class, 'reject']);
             Route::post('returns/{id}/schedule-pickup', [VendorReturnController::class, 'schedulePickup']);
             Route::post('returns/{id}/mark-received', [VendorReturnController::class, 'markReceived']);
             Route::post('returns/{id}/complete-inspection', [VendorReturnController::class, 'completeInspection']);
@@ -298,6 +296,8 @@ Route::prefix('v1')->group(function () {
             Route::get('returns/statistics', [AdminReturnController::class, 'statistics']);
             Route::get('returns', [AdminReturnController::class, 'index']);
             Route::get('returns/{id}', [AdminReturnController::class, 'show']);
+            Route::post('returns/{id}/approve', [AdminReturnController::class, 'approve']);
+            Route::post('returns/{id}/reject', [AdminReturnController::class, 'reject']);
             Route::post('returns/bulk-approve', [AdminReturnController::class, 'bulkApprove']);
             Route::post('returns/bulk-reject', [AdminReturnController::class, 'bulkReject']);
             Route::post('returns/{id}/force-complete-refund', [AdminReturnController::class, 'forceCompleteRefund']);

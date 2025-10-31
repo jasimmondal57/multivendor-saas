@@ -67,12 +67,10 @@ interface ReturnOrder {
 }
 
 interface ReturnStats {
-  pending_approval: number;
   in_transit: number;
   received: number;
-  refund_pending: number;
-  completed: number;
-  rejected: number;
+  delivered: number;
+  total: number;
 }
 
 interface TimelineEvent {
@@ -84,26 +82,22 @@ interface TimelineEvent {
 }
 
 export default function VendorReturns() {
-  const [activeTab, setActiveTab] = useState('pending_approval');
+  const [activeTab, setActiveTab] = useState('in_transit');
   const [returns, setReturns] = useState<ReturnOrder[]>([]);
   const [stats, setStats] = useState<ReturnStats>({
-    pending_approval: 0,
     in_transit: 0,
     received: 0,
-    refund_pending: 0,
-    completed: 0,
-    rejected: 0,
+    delivered: 0,
+    total: 0,
   });
   const [loading, setLoading] = useState(true);
   const [selectedReturn, setSelectedReturn] = useState<ReturnOrder | null>(null);
-  const [showRejectModal, setShowRejectModal] = useState(false);
   const [showPickupModal, setShowPickupModal] = useState(false);
   const [showInspectionModal, setShowInspectionModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-  const [rejectionReason, setRejectionReason] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [inspectionPassed, setInspectionPassed] = useState(true);
   const [inspectionNotes, setInspectionNotes] = useState('');
@@ -129,12 +123,9 @@ export default function VendorReturns() {
     setLoading(true);
     try {
       const statusMap: { [key: string]: string } = {
-        'pending_approval': 'pending_approval',
-        'in_transit': 'pickup_scheduled,in_transit,out_for_pickup,picked_up',
+        'in_transit': 'approved,pickup_scheduled,in_transit,out_for_pickup,picked_up',
         'received': 'received,inspecting',
-        'refund_pending': 'inspection_passed,refund_initiated',
-        'completed': 'refund_completed,completed',
-        'rejected': 'rejected,inspection_failed',
+        'delivered': 'inspection_passed,refund_initiated,refund_completed,completed',
       };
 
       const status = statusMap[activeTab] || activeTab;
@@ -147,51 +138,6 @@ export default function VendorReturns() {
       console.error('Error fetching returns:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleApprove = async (returnOrder: ReturnOrder) => {
-    try {
-      const response = await api.post(`/v1/vendor/returns/${returnOrder.id}/approve`);
-
-      if (response.data.success) {
-        alert('Return request approved successfully');
-        fetchReturns();
-        fetchStats();
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Failed to approve return');
-      }
-    } catch (error) {
-      console.error('Error approving return:', error);
-      alert('Failed to approve return');
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedReturn || !rejectionReason.trim()) {
-      alert('Please provide a rejection reason');
-      return;
-    }
-
-    try {
-      const response = await api.post(`/v1/vendor/returns/${selectedReturn.id}/reject`, {
-        reason: rejectionReason,
-      });
-
-      if (response.data.success) {
-        alert('Return request rejected successfully');
-        setShowRejectModal(false);
-        setRejectionReason('');
-        setSelectedReturn(null);
-        fetchReturns();
-        fetchStats();
-      } else {
-        alert(response.data.message || 'Failed to reject return');
-      }
-    } catch (error: any) {
-      console.error('Error rejecting return:', error);
-      alert(error.response?.data?.message || 'Failed to reject return');
     }
   };
 
@@ -343,19 +289,8 @@ export default function VendorReturns() {
 
   const tabs = [
     {
-      id: 'pending_approval',
-      label: 'Pending Approval',
-      count: stats.pending_approval,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      color: 'text-yellow-600',
-    },
-    {
       id: 'in_transit',
-      label: 'In Transit',
+      label: 'In Transit / Out for Return',
       count: stats.in_transit,
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -376,37 +311,15 @@ export default function VendorReturns() {
       color: 'text-teal-600',
     },
     {
-      id: 'refund_pending',
-      label: 'Refund Pending',
-      count: stats.refund_pending,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-        </svg>
-      ),
-      color: 'text-blue-600',
-    },
-    {
-      id: 'completed',
-      label: 'Completed',
-      count: stats.completed,
+      id: 'delivered',
+      label: 'Delivered',
+      count: stats.delivered,
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
       color: 'text-green-600',
-    },
-    {
-      id: 'rejected',
-      label: 'Rejected',
-      count: stats.rejected,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      color: 'text-red-600',
     },
   ];
 
@@ -508,26 +421,6 @@ export default function VendorReturns() {
 
               {/* Action Buttons - Context Aware */}
               <div className="flex flex-wrap gap-2">
-                {returnOrder.status === 'pending_approval' && (
-                  <>
-                    <button
-                      onClick={() => handleApprove(returnOrder)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                    >
-                      Approve Return
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedReturn(returnOrder);
-                        setShowRejectModal(true);
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                    >
-                      Reject Return
-                    </button>
-                  </>
-                )}
-
                 {returnOrder.status === 'approved' && (
                   <button
                     onClick={() => {
