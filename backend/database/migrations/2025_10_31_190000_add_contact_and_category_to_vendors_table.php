@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('contact_person_name')->nullable()->after('business_pincode');
             $table->string('contact_person_phone', 10)->nullable()->after('contact_person_name');
             $table->string('contact_person_email')->nullable()->after('contact_person_phone');
+            $table->string('pan_holder_name')->nullable()->after('pan_number');
+            $table->boolean('gst_registered')->default(false)->after('gstin');
         });
     }
 
@@ -30,6 +32,8 @@ return new class extends Migration
                 'contact_person_name',
                 'contact_person_phone',
                 'contact_person_email',
+                'pan_holder_name',
+                'gst_registered',
             ]);
         });
     }
