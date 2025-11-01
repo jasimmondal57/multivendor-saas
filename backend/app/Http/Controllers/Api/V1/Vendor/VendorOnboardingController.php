@@ -26,15 +26,23 @@ class VendorOnboardingController extends Controller
 
         $onboarding = VendorOnboardingStep::firstOrCreate(
             ['vendor_id' => $vendor->id],
-            ['current_step' => 1]
+            ['current_step' => 1, 'is_completed' => false]
         );
 
         return response()->json([
             'success' => true,
             'data' => [
+                'is_completed' => $onboarding->is_completed ?? false,
+                'current_step' => $onboarding->current_step ?? 1,
+                'progress_percentage' => $onboarding->progress_percentage,
+                'step_1_completed' => $onboarding->step_1_completed ?? false,
+                'step_2_completed' => $onboarding->step_2_completed ?? false,
+                'step_3_completed' => $onboarding->step_3_completed ?? false,
+                'step_4_completed' => $onboarding->step_4_completed ?? false,
+                'step_5_completed' => $onboarding->step_5_completed ?? false,
+                'verification_status' => $onboarding->verification_status,
                 'onboarding' => $onboarding,
                 'vendor' => $vendor,
-                'progress_percentage' => $onboarding->progress_percentage,
             ],
         ]);
     }

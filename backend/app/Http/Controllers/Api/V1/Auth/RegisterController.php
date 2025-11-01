@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -44,6 +45,18 @@ class RegisterController extends Controller
 
             // Assign role based on user type
             $user->assignRole($request->user_type);
+
+            // Create vendor profile if user type is vendor
+            if ($request->user_type === 'vendor') {
+                Vendor::create([
+                    'user_id' => $user->id,
+                    'business_name' => $request->name, // Temporary, will be updated in onboarding
+                    'pan_number' => 'TEMP' . str_pad($user->id, 6, '0', STR_PAD_LEFT), // Temporary unique PAN
+                    'status' => 'inactive', // Will be activated after onboarding
+                    'kyc_status' => 'pending',
+                    'verification_status' => 'pending',
+                ]);
+            }
 
             // Create API token
             $token = $user->createToken('auth_token')->plainTextToken;
