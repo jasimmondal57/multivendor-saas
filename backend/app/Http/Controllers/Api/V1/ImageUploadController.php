@@ -114,4 +114,39 @@ class ImageUploadController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Upload vendor document (KYC documents)
+     */
+    public function uploadVendorDocument(Request $request)
+    {
+        $request->validate([
+            'document' => 'required|file|mimes:jpeg,png,jpg,pdf|max:10240', // 10MB max
+        ]);
+
+        try {
+            $document = $request->file('document');
+            $filename = Str::uuid() . '.' . $document->getClientOriginalExtension();
+
+            // Store in public/vendor_documents directory
+            $path = $document->storeAs('vendor_documents', $filename, 'public');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Document uploaded successfully',
+                'data' => [
+                    'filename' => $filename,
+                    'path' => $path,
+                    'url' => Storage::url($path),
+                    'full_url' => url(Storage::url($path)),
+                ],
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload document',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

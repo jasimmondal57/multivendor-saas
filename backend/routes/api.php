@@ -162,6 +162,7 @@ Route::prefix('v1')->group(function () {
             Route::post('images/upload', [ImageUploadController::class, 'uploadProductImage']);
             Route::post('images/upload-multiple', [ImageUploadController::class, 'uploadMultipleImages']);
             Route::delete('images/delete', [ImageUploadController::class, 'deleteProductImage']);
+            Route::post('documents/upload', [ImageUploadController::class, 'uploadVendorDocument']);
 
             // Dashboard
             Route::get('dashboard/stats', [VendorProductController::class, 'dashboardStats']);

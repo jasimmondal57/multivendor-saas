@@ -73,6 +73,7 @@ export default function VendorOnboarding() {
 
   // Step 5: Documents
   const [documents, setDocuments] = useState<any[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   useEffect(() => {
     fetchOnboardingStatus();
@@ -197,6 +198,58 @@ export default function VendorOnboarding() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Only JPG, PNG, and PDF files are allowed');
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+
+      const response = await api.post('/v1/vendor/documents/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.data.success) {
+        const newDoc = {
+          type: docType,
+          url: response.data.data.full_url,
+          number: '',
+          filename: file.name,
+        };
+        setDocuments(prev => {
+          // Remove existing document of same type
+          const filtered = prev.filter(d => d.type !== docType);
+          return [...filtered, newDoc];
+        });
+        alert('Document uploaded successfully!');
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to upload document');
+    } finally {
+      setUploadingDoc(false);
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  const handleRemoveDocument = (docType: string) => {
+    setDocuments(prev => prev.filter(d => d.type !== docType));
   };
 
   const handleStep5Submit = async (e: React.FormEvent) => {
@@ -708,46 +761,238 @@ export default function VendorOnboarding() {
                   <div>
                     <h4 className="font-semibold text-blue-900 mb-1">Document Upload - Optional</h4>
                     <p className="text-sm text-blue-800">
-                      You can skip this step and complete your onboarding now. Documents can be uploaded later from your vendor dashboard settings.
-                      Your account will be activated once all required documents are verified.
+                      Upload your KYC documents now or skip and upload later from your vendor dashboard.
+                      Supported formats: JPG, PNG, PDF (Max 10MB per file)
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
-                <div className="max-w-md mx-auto">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+              {/* Document Upload Cards */}
+              <div className="space-y-4">
+                {/* PAN Card */}
+                <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                        </svg>
+                        PAN Card
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">Upload a clear copy of your PAN card</p>
+                    </div>
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-semibold">Optional</span>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Document Upload Coming Soon</h3>
-                  <p className="text-gray-600 mb-4">
-                    Document upload functionality will be available in your vendor dashboard. You can upload the following documents later:
-                  </p>
-                  <ul className="text-sm text-gray-600 space-y-2 text-left">
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      PAN Card
-                    </li>
-                    {kycDetails.gst_registered && (
-                      <li className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        GST Certificate
-                      </li>
+                  {documents.find(d => d.type === 'pan_card') ? (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm text-gray-700">{documents.find(d => d.type === 'pan_card')?.filename}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDocument('pan_card')}
+                        className="text-red-600 hover:text-red-700 text-sm font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg,application/pdf"
+                        onChange={(e) => handleDocumentUpload(e, 'pan_card')}
+                        disabled={uploadingDoc}
+                        className="hidden"
+                      />
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                        <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p className="text-sm text-gray-600">
+                          {uploadingDoc ? 'Uploading...' : 'Click to upload or drag and drop'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">JPG, PNG or PDF (max 10MB)</p>
+                      </div>
+                    </label>
+                  )}
+                </div>
+
+                {/* GST Certificate (only if GST registered) */}
+                {kycDetails.gst_registered && (
+                  <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          GST Certificate
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">Upload your GST registration certificate</p>
+                      </div>
+                      <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-semibold">Optional</span>
+                    </div>
+                    {documents.find(d => d.type === 'gst_certificate') ? (
+                      <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center gap-3">
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-sm text-gray-700">{documents.find(d => d.type === 'gst_certificate')?.filename}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDocument('gst_certificate')}
+                          className="text-red-600 hover:text-red-700 text-sm font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="block">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/jpg,application/pdf"
+                          onChange={(e) => handleDocumentUpload(e, 'gst_certificate')}
+                          disabled={uploadingDoc}
+                          className="hidden"
+                        />
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                          <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <p className="text-sm text-gray-600">
+                            {uploadingDoc ? 'Uploading...' : 'Click to upload or drag and drop'}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">JPG, PNG or PDF (max 10MB)</p>
+                        </div>
+                      </label>
                     )}
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      Cancelled Cheque
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      Address Proof
-                    </li>
-                  </ul>
+                  </div>
+                )}
+
+                {/* Cancelled Cheque */}
+                <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        Cancelled Cheque
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">Upload a cancelled cheque for bank verification</p>
+                    </div>
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-semibold">Optional</span>
+                  </div>
+                  {documents.find(d => d.type === 'cancelled_cheque') ? (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm text-gray-700">{documents.find(d => d.type === 'cancelled_cheque')?.filename}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDocument('cancelled_cheque')}
+                        className="text-red-600 hover:text-red-700 text-sm font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg,application/pdf"
+                        onChange={(e) => handleDocumentUpload(e, 'cancelled_cheque')}
+                        disabled={uploadingDoc}
+                        className="hidden"
+                      />
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                        <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p className="text-sm text-gray-600">
+                          {uploadingDoc ? 'Uploading...' : 'Click to upload or drag and drop'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">JPG, PNG or PDF (max 10MB)</p>
+                      </div>
+                    </label>
+                  )}
+                </div>
+
+                {/* Address Proof */}
+                <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Address Proof
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">Upload address proof (Aadhaar, Utility Bill, etc.)</p>
+                    </div>
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-semibold">Optional</span>
+                  </div>
+                  {documents.find(d => d.type === 'address_proof') ? (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm text-gray-700">{documents.find(d => d.type === 'address_proof')?.filename}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDocument('address_proof')}
+                        className="text-red-600 hover:text-red-700 text-sm font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg,application/pdf"
+                        onChange={(e) => handleDocumentUpload(e, 'address_proof')}
+                        disabled={uploadingDoc}
+                        className="hidden"
+                      />
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                        <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p className="text-sm text-gray-600">
+                          {uploadingDoc ? 'Uploading...' : 'Click to upload or drag and drop'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">JPG, PNG or PDF (max 10MB)</p>
+                      </div>
+                    </label>
+                  )}
                 </div>
               </div>
+
+              {/* Summary */}
+              {documents.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="font-semibold">{documents.length} document(s) uploaded</span>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-between">
                 <button
@@ -757,7 +1002,7 @@ export default function VendorOnboarding() {
                 >
                   ← Previous
                 </button>
-                <button type="submit" disabled={loading} className={buttonClass}>
+                <button type="submit" disabled={loading || uploadingDoc} className={buttonClass}>
                   {loading ? 'Submitting...' : 'Complete Onboarding'}
                 </button>
               </div>
