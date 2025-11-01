@@ -36,11 +36,17 @@ export default function VendorLoginPage() {
       try {
         const onboardingResponse = await api.get('/v1/vendor/onboarding/status');
         if (onboardingResponse.data.success) {
-          const { is_completed } = onboardingResponse.data.data;
+          const { is_completed, onboarding } = onboardingResponse.data.data;
 
           // Redirect to onboarding if not completed
           if (!is_completed) {
             window.location.href = '/vendor/onboarding';
+            return;
+          }
+
+          // Redirect to verification pending if not approved
+          if (is_completed && onboarding?.verification_status !== 'approved') {
+            window.location.href = '/vendor/verification-pending';
             return;
           }
         }

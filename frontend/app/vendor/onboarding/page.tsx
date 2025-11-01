@@ -206,11 +206,11 @@ export default function VendorOnboarding() {
     try {
       const response = await api.post('/v1/vendor/onboarding/documents', { documents });
       if (response.data.success) {
-        alert('Onboarding completed! Your application is under review.');
-        router.push('/vendor/dashboard');
+        // Redirect to verification pending page instead of dashboard
+        router.push('/vendor/verification-pending');
       }
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to upload documents');
+      alert(error.response?.data?.message || 'Failed to complete onboarding');
     } finally {
       setLoading(false);
     }

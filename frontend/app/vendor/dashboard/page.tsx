@@ -33,11 +33,17 @@ export default function VendorDashboardPage() {
       try {
         const response = await api.get('/v1/vendor/onboarding/status');
         if (response.data.success) {
-          const { is_completed, current_step } = response.data.data;
+          const { is_completed, onboarding } = response.data.data;
 
           // If onboarding is not completed, redirect to onboarding page
           if (!is_completed) {
             router.push('/vendor/onboarding');
+            return;
+          }
+
+          // If onboarding completed but not approved, redirect to verification pending
+          if (is_completed && onboarding?.verification_status !== 'approved') {
+            router.push('/vendor/verification-pending');
             return;
           }
         }
