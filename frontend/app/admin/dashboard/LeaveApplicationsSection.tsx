@@ -196,7 +196,7 @@ export default function LeaveApplicationsSection() {
                 <tr key={leave.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{leave.vendor.business_name}</div>
-                    <div className="text-sm text-gray-500">{leave.vendor.user.email}</div>
+                    <div className="text-sm text-gray-500">{leave.vendor.user?.email || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeBadge(leave.type)}`}>

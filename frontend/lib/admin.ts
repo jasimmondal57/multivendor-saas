@@ -17,35 +17,65 @@ export interface Vendor {
   user_id: number;
   business_name: string;
   business_type?: string;
+  business_category?: string;
+  business_description?: string;
   business_phone?: string;
   business_email?: string;
   business_address?: string;
   business_city?: string;
   business_state?: string;
   business_pincode?: string;
+  contact_person_name?: string;
+  contact_person_email?: string;
+  contact_person_phone?: string;
   website?: string;
   gstin?: string;
   pan?: string;
+  pan_number?: string;
+  pan_holder_name?: string;
+  gst_registered?: boolean;
   aadhaar?: string;
   status: string;
   verification_status?: string;
   kyc_status?: string;
   suspension_reason?: string;
+  rejection_reason?: string;
   suspended_at?: string;
   total_sales?: number;
   total_orders?: number;
   average_rating?: number;
   created_at: string;
-  user: {
+  user?: {
     id: number;
     name: string;
     email: string;
     phone: string;
   };
   store?: {
+    id?: number;
     store_name: string;
-    store_description: string;
+    store_description?: string;
+    customer_support_email?: string;
+    customer_support_phone?: string;
+    store_logo?: string;
+    store_banner?: string;
   };
+  bankAccount?: {
+    id: number;
+    account_holder_name: string;
+    account_number: string;
+    bank_name: string;
+    ifsc_code: string;
+    branch_name?: string;
+    account_type?: string;
+  };
+  kycDocuments?: Array<{
+    id: number;
+    document_type: string;
+    document_url?: string;
+    document_number?: string;
+    verification_status: string;
+  }>;
 }
 
 export interface Product {
