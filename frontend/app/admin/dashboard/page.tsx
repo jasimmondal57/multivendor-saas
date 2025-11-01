@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import LeaveApplicationsSection from './LeaveApplicationsSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 import { adminService, AdminStats, Vendor, Product, Order, Customer, Review, Coupon, Category, Payment } from '@/lib/admin';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import DataTable, { Column } from '@/components/admin/DataTable';
