@@ -700,34 +700,52 @@ export default function VendorOnboarding() {
             <form onSubmit={handleStep5Submit} className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Document Upload</h2>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                <p className="text-sm text-yellow-800">
-                  <strong>Note:</strong> Please upload clear, readable copies of the following documents. All documents
-                  will be verified by our team.
-                </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-1">Document Upload - Optional</h4>
+                    <p className="text-sm text-blue-800">
+                      You can skip this step and complete your onboarding now. Documents can be uploaded later from your vendor dashboard settings.
+                      Your account will be activated once all required documents are verified.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-                  <p className="text-gray-600 mb-2">📄 PAN Card</p>
-                  <input type="file" accept="image/*,application/pdf" className="text-sm" />
-                </div>
-
-                {kycDetails.gst_registered && (
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-                    <p className="text-gray-600 mb-2">📄 GST Certificate</p>
-                    <input type="file" accept="image/*,application/pdf" className="text-sm" />
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
+                <div className="max-w-md mx-auto">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                   </div>
-                )}
-
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-                  <p className="text-gray-600 mb-2">🏦 Cancelled Cheque</p>
-                  <input type="file" accept="image/*,application/pdf" className="text-sm" />
-                </div>
-
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-                  <p className="text-gray-600 mb-2">📍 Address Proof</p>
-                  <input type="file" accept="image/*,application/pdf" className="text-sm" />
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Document Upload Coming Soon</h3>
+                  <p className="text-gray-600 mb-4">
+                    Document upload functionality will be available in your vendor dashboard. You can upload the following documents later:
+                  </p>
+                  <ul className="text-sm text-gray-600 space-y-2 text-left">
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      PAN Card
+                    </li>
+                    {kycDetails.gst_registered && (
+                      <li className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        GST Certificate
+                      </li>
+                    )}
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      Cancelled Cheque
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      Address Proof
+                    </li>
+                  </ul>
                 </div>
               </div>
 
@@ -740,7 +758,7 @@ export default function VendorOnboarding() {
                   ← Previous
                 </button>
                 <button type="submit" disabled={loading} className={buttonClass}>
-                  {loading ? 'Submitting...' : 'Submit for Review'}
+                  {loading ? 'Submitting...' : 'Complete Onboarding'}
                 </button>
               </div>
             </form>

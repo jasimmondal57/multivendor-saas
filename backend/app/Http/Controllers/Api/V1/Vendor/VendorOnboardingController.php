@@ -213,24 +213,27 @@ class VendorOnboardingController extends Controller
         $vendor = $request->user()->vendor;
 
         $validated = $request->validate([
-            'documents' => 'required|array',
+            'documents' => 'nullable|array', // Made optional - vendors can skip and upload later
             'documents.*.type' => 'required|in:pan_card,gst_certificate,cancelled_cheque,address_proof,identity_proof',
             'documents.*.url' => 'required|url',
             'documents.*.number' => 'nullable|string',
         ]);
 
-        foreach ($validated['documents'] as $doc) {
-            VendorKycDocument::updateOrCreate(
-                [
-                    'vendor_id' => $vendor->id,
-                    'document_type' => $doc['type'],
-                ],
-                [
-                    'document_url' => $doc['url'],
-                    'document_number' => $doc['number'] ?? null,
-                    'verification_status' => 'pending',
-                ]
-            );
+        // Only process documents if provided
+        if (!empty($validated['documents'])) {
+            foreach ($validated['documents'] as $doc) {
+                VendorKycDocument::updateOrCreate(
+                    [
+                        'vendor_id' => $vendor->id,
+                        'document_type' => $doc['type'],
+                    ],
+                    [
+                        'document_url' => $doc['url'],
+                        'document_number' => $doc['number'] ?? null,
+                        'verification_status' => 'pending',
+                    ]
+                );
+            }
         }
 
         $onboarding = VendorOnboardingStep::where('vendor_id', $vendor->id)->first();
