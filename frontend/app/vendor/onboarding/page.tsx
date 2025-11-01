@@ -14,18 +14,26 @@ export default function VendorOnboarding() {
   const [categories, setCategories] = useState<any[]>([]);
 
   // Step 1: Business Information
-  const [businessInfo, setBusinessInfo] = useState({
-    business_name: '',
-    business_type: 'individual',
-    business_category: '',
-    business_description: '',
-    business_address: '',
-    business_city: '',
-    business_state: '',
-    business_pincode: '',
-    contact_person_name: '',
-    contact_person_phone: user?.phone || '',
-    contact_person_email: user?.email || '',
+  const [businessInfo, setBusinessInfo] = useState(() => {
+    // Clean phone number on initialization
+    let cleanPhone = user?.phone || '';
+    if (cleanPhone) {
+      cleanPhone = cleanPhone.replace(/[\s\-\(\)\+]/g, '').replace(/^91/, '').slice(-10);
+    }
+
+    return {
+      business_name: '',
+      business_type: 'individual',
+      business_category: '',
+      business_description: '',
+      business_address: '',
+      business_city: '',
+      business_state: '',
+      business_pincode: '',
+      contact_person_name: '',
+      contact_person_phone: cleanPhone,
+      contact_person_email: user?.email || '',
+    };
   });
 
   // Step 2: KYC Details
@@ -69,9 +77,20 @@ export default function VendorOnboarding() {
   useEffect(() => {
     // Update contact email and phone when user data is loaded
     if (user) {
+      // Clean phone number - remove country code and formatting
+      let cleanPhone = user.phone || '';
+      if (cleanPhone) {
+        // Remove +91, spaces, dashes, parentheses
+        cleanPhone = cleanPhone.replace(/[\s\-\(\)\+]/g, '');
+        // Remove country code if present
+        cleanPhone = cleanPhone.replace(/^91/, '');
+        // Take only last 10 digits
+        cleanPhone = cleanPhone.slice(-10);
+      }
+
       setBusinessInfo(prev => ({
         ...prev,
-        contact_person_phone: user.phone || '',
+        contact_person_phone: cleanPhone,
         contact_person_email: user.email || '',
       }));
     }
@@ -307,16 +326,23 @@ export default function VendorOnboarding() {
 
                 <div>
                   <label className={labelClass}>Contact Phone *</label>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    className={`${inputClass} bg-gray-100 cursor-not-allowed`}
-                    value={businessInfo.contact_person_phone}
-                    readOnly
-                    title="Contact phone is taken from your registered account"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">From your registered account</p>
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl text-gray-600 font-medium">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      required
+                      maxLength={10}
+                      pattern="[0-9]{10}"
+                      className={`${inputClass} bg-gray-100 cursor-not-allowed flex-1`}
+                      value={businessInfo.contact_person_phone}
+                      readOnly
+                      title="Contact phone is taken from your registered account"
+                      placeholder="10-digit mobile number"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">From your registered account (Indian mobile number)</p>
                 </div>
 
                 <div>

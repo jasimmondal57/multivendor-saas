@@ -54,9 +54,20 @@ class VendorOnboardingController extends Controller
             'business_state' => 'required|string',
             'business_pincode' => 'required|string|max:6',
             'contact_person_name' => 'required|string',
-            'contact_person_phone' => 'required|string|max:10',
+            'contact_person_phone' => 'required|string',
             'contact_person_email' => 'required|email',
         ]);
+
+        // Clean phone number - remove country code, spaces, dashes, etc.
+        if (isset($validated['contact_person_phone'])) {
+            $phone = $validated['contact_person_phone'];
+            // Remove +91, spaces, dashes, parentheses
+            $phone = preg_replace('/[\s\-\(\)\+]/', '', $phone);
+            // Remove country code if present
+            $phone = preg_replace('/^91/', '', $phone);
+            // Take only last 10 digits
+            $validated['contact_person_phone'] = substr($phone, -10);
+        }
 
         $vendor->update($validated);
 
