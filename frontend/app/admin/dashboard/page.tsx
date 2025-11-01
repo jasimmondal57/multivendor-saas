@@ -405,8 +405,15 @@ export default function AdminDashboardPage() {
         await adminService.updateVendorStatus(vendorId, 'active');
         alert('Vendor unsuspended successfully!');
       }
-      // Refresh vendors list
-      fetchMenuData();
+
+      // Close modal if open
+      setViewingVendor(null);
+
+      // Force refresh vendors list with cache busting
+      const vendorParams: any = { page: 1, _t: Date.now() };
+      if (vendorTab !== 'all') vendorParams.status = vendorTab;
+      const vendorsRes = await adminService.getVendors(vendorParams);
+      if (vendorsRes.success) setVendors(vendorsRes.data.data);
     } catch (error) {
       console.error('Failed to perform vendor action:', error);
       alert('Failed to perform action. Please try again.');
