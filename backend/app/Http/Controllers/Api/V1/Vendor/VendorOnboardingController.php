@@ -46,7 +46,7 @@ class VendorOnboardingController extends Controller
 
         $validated = $request->validate([
             'business_name' => 'required|string|max:255',
-            'business_type' => 'required|in:individual,partnership,private_limited,llp,public_limited',
+            'business_type' => 'required|in:individual,proprietorship,partnership,private_limited,llp,public_limited',
             'business_category' => 'required|string',
             'business_description' => 'nullable|string',
             'business_address' => 'required|string',

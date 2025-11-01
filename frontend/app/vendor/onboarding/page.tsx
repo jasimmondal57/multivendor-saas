@@ -3,12 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function VendorOnboarding() {
   const router = useRouter();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [onboardingData, setOnboardingData] = useState<any>(null);
+  const [categories, setCategories] = useState<any[]>([]);
 
   // Step 1: Business Information
   const [businessInfo, setBusinessInfo] = useState({
@@ -21,8 +24,8 @@ export default function VendorOnboarding() {
     business_state: '',
     business_pincode: '',
     contact_person_name: '',
-    contact_person_phone: '',
-    contact_person_email: '',
+    contact_person_phone: user?.phone || '',
+    contact_person_email: user?.email || '',
   });
 
   // Step 2: KYC Details
@@ -60,7 +63,19 @@ export default function VendorOnboarding() {
 
   useEffect(() => {
     fetchOnboardingStatus();
+    fetchCategories();
   }, []);
+
+  useEffect(() => {
+    // Update contact email and phone when user data is loaded
+    if (user) {
+      setBusinessInfo(prev => ({
+        ...prev,
+        contact_person_phone: user.phone || '',
+        contact_person_email: user.email || '',
+      }));
+    }
+  }, [user]);
 
   const fetchOnboardingStatus = async () => {
     try {
@@ -71,6 +86,17 @@ export default function VendorOnboarding() {
       }
     } catch (error) {
       console.error('Failed to fetch onboarding status:', error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/v1/categories');
+      if (response.data.success) {
+        setCategories(response.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
     }
   };
 
@@ -243,6 +269,7 @@ export default function VendorOnboarding() {
                     onChange={(e) => setBusinessInfo({ ...businessInfo, business_type: e.target.value })}
                   >
                     <option value="individual">Individual</option>
+                    <option value="proprietorship">Proprietorship</option>
                     <option value="partnership">Partnership</option>
                     <option value="private_limited">Private Limited</option>
                     <option value="llp">LLP</option>
@@ -252,14 +279,19 @@ export default function VendorOnboarding() {
 
                 <div>
                   <label className={labelClass}>Business Category *</label>
-                  <input
-                    type="text"
+                  <select
                     required
                     className={inputClass}
                     value={businessInfo.business_category}
                     onChange={(e) => setBusinessInfo({ ...businessInfo, business_category: e.target.value })}
-                    placeholder="e.g., Electronics, Fashion, Home & Kitchen"
-                  />
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -279,10 +311,12 @@ export default function VendorOnboarding() {
                     type="tel"
                     required
                     maxLength={10}
-                    className={inputClass}
+                    className={`${inputClass} bg-gray-100 cursor-not-allowed`}
                     value={businessInfo.contact_person_phone}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, contact_person_phone: e.target.value })}
+                    readOnly
+                    title="Contact phone is taken from your registered account"
                   />
+                  <p className="text-xs text-gray-500 mt-1">From your registered account</p>
                 </div>
 
                 <div>
@@ -290,10 +324,12 @@ export default function VendorOnboarding() {
                   <input
                     type="email"
                     required
-                    className={inputClass}
+                    className={`${inputClass} bg-gray-100 cursor-not-allowed`}
                     value={businessInfo.contact_person_email}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, contact_person_email: e.target.value })}
+                    readOnly
+                    title="Contact email is taken from your registered account"
                   />
+                  <p className="text-xs text-gray-500 mt-1">From your registered account</p>
                 </div>
               </div>
 

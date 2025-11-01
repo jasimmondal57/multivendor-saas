@@ -242,7 +242,7 @@ export default function VendorAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={categorySales}
+                  data={categorySales as any}
                   dataKey="total_sales"
                   nameKey="category_name"
                   cx="50%"

@@ -80,6 +80,7 @@ export interface Product {
   approval_status: string;
   rejection_reason?: string;
   is_featured?: boolean;
+  is_active?: boolean;
   is_trending?: boolean;
   view_count?: number;
   order_count?: number;

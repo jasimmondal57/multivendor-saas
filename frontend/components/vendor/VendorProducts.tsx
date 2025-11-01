@@ -105,6 +105,7 @@ interface Product {
   is_returnable?: boolean;
   return_period_days?: number;
   low_stock_threshold?: number;
+  is_active?: boolean;
   created_at: string;
 }
 
