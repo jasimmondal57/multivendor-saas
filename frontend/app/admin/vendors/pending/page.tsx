@@ -18,7 +18,7 @@ export default function PendingVendors() {
     try {
       const response = await api.get('/v1/admin/vendors/pending');
       if (response.data.success) {
-        setVendors(response.data.data.vendors.data || []);
+        setVendors(response.data.data.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch pending vendors:', error);
@@ -117,101 +117,271 @@ export default function PendingVendors() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Business Type</h3>
-                    <p className="text-gray-800 capitalize">{vendor.vendor?.business_type}</p>
+                {/* Business Information */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Business Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">Business Type</h4>
+                      <p className="text-gray-900 font-medium capitalize">{vendor.vendor?.business_type || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">Category</h4>
+                      <p className="text-gray-900 font-medium">{vendor.vendor?.business_category || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">Submitted On</h4>
+                      <p className="text-gray-900 font-medium">
+                        {vendor.submitted_at ? new Date(vendor.submitted_at).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        }) : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">Business Address</h4>
+                      <p className="text-gray-900 font-medium text-sm">{vendor.vendor?.business_address || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">City & State</h4>
+                      <p className="text-gray-900 font-medium">
+                        {vendor.vendor?.business_city}, {vendor.vendor?.business_state}
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">Pincode</h4>
+                      <p className="text-gray-900 font-medium">{vendor.vendor?.business_pincode || 'N/A'}</p>
+                    </div>
                   </div>
+                  {vendor.vendor?.business_description && (
+                    <div className="mt-4 bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-2">Business Description</h4>
+                      <p className="text-gray-900 text-sm">{vendor.vendor.business_description}</p>
+                    </div>
+                  )}
+                </div>
 
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Category</h3>
-                    <p className="text-gray-800">{vendor.vendor?.business_category || 'N/A'}</p>
+                {/* Contact Information */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Contact Person
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">Name</h4>
+                      <p className="text-gray-900 font-medium">{vendor.vendor?.contact_person_name || vendor.vendor?.user?.name || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">Email</h4>
+                      <p className="text-gray-900 font-medium text-sm">{vendor.vendor?.contact_person_email || vendor.vendor?.user?.email || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">Phone</h4>
+                      <p className="text-gray-900 font-medium">+91 {vendor.vendor?.contact_person_phone || vendor.vendor?.user?.phone || 'N/A'}</p>
+                    </div>
                   </div>
+                </div>
 
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Location</h3>
-                    <p className="text-gray-800">
-                      {vendor.vendor?.business_city}, {vendor.vendor?.business_state}
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Submitted</h3>
-                    <p className="text-gray-800">{new Date(vendor.submitted_at).toLocaleDateString()}</p>
+                {/* KYC Details */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    KYC Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">PAN Number</h4>
+                      <p className="text-gray-900 font-medium font-mono">{vendor.vendor?.pan_number || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">PAN Holder Name</h4>
+                      <p className="text-gray-900 font-medium">{vendor.vendor?.pan_holder_name || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h4 className="text-xs font-semibold text-gray-600 mb-1">GST Registered</h4>
+                      <p className="text-gray-900 font-medium">
+                        {vendor.vendor?.gst_registered ? (
+                          <span className="text-green-600">✓ Yes</span>
+                        ) : (
+                          <span className="text-gray-500">✗ No</span>
+                        )}
+                      </p>
+                    </div>
+                    {vendor.vendor?.gst_registered && vendor.vendor?.gstin && (
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <h4 className="text-xs font-semibold text-gray-600 mb-1">GSTIN</h4>
+                        <p className="text-gray-900 font-medium font-mono">{vendor.vendor.gstin}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* KYC Documents */}
-                {vendor.vendor?.kyc_documents && vendor.vendor.kyc_documents.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">KYC Documents</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {vendor.vendor.kyc_documents.map((doc: any) => (
-                        <div key={doc.id} className="bg-gray-50 rounded-xl p-3 text-center">
-                          <div className="text-2xl mb-2">📄</div>
-                          <p className="text-xs font-semibold text-gray-600 mb-1 capitalize">
-                            {doc.document_type.replace('_', ' ')}
-                          </p>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              doc.verification_status === 'verified'
-                                ? 'bg-green-100 text-green-800'
-                                : doc.verification_status === 'rejected'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}
-                          >
-                            {doc.verification_status}
-                          </span>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Uploaded Documents
+                  </h3>
+                  {vendor.vendor?.kycDocuments && vendor.vendor.kycDocuments.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {vendor.vendor.kycDocuments.map((doc: any) => (
+                        <div key={doc.id} className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200 hover:border-indigo-300 transition-colors">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900 capitalize">
+                                  {doc.document_type.replace(/_/g, ' ')}
+                                </p>
+                                {doc.document_number && (
+                                  <p className="text-xs text-gray-600 font-mono">{doc.document_number}</p>
+                                )}
+                              </div>
+                            </div>
+                            <span
+                              className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                                doc.verification_status === 'verified'
+                                  ? 'bg-green-100 text-green-800'
+                                  : doc.verification_status === 'rejected'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                            >
+                              {doc.verification_status}
+                            </span>
+                          </div>
+                          {doc.document_url && (
+                            <a
+                              href={doc.document_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View Document
+                            </a>
+                          )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+                      <p className="text-yellow-800 text-sm">
+                        ⚠️ No documents uploaded yet. Vendor can upload documents from their dashboard.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Bank Account */}
-                {vendor.vendor?.bank_account && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Bank Account</h3>
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    Bank Account Details
+                  </h3>
+                  {vendor.vendor?.bankAccount ? (
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border-2 border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                          <span className="text-gray-600">Account Holder:</span>
-                          <p className="font-semibold">{vendor.vendor.bank_account.account_holder_name}</p>
+                          <h4 className="text-xs font-semibold text-gray-600 mb-1">Account Holder Name</h4>
+                          <p className="text-gray-900 font-semibold">{vendor.vendor.bankAccount.account_holder_name}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Bank:</span>
-                          <p className="font-semibold">{vendor.vendor.bank_account.bank_name}</p>
+                          <h4 className="text-xs font-semibold text-gray-600 mb-1">Account Number</h4>
+                          <p className="text-gray-900 font-semibold font-mono">{vendor.vendor.bankAccount.account_number}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">IFSC:</span>
-                          <p className="font-semibold">{vendor.vendor.bank_account.ifsc_code}</p>
+                          <h4 className="text-xs font-semibold text-gray-600 mb-1">Bank Name</h4>
+                          <p className="text-gray-900 font-semibold">{vendor.vendor.bankAccount.bank_name}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-semibold text-gray-600 mb-1">IFSC Code</h4>
+                          <p className="text-gray-900 font-semibold font-mono">{vendor.vendor.bankAccount.ifsc_code}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-semibold text-gray-600 mb-1">Branch</h4>
+                          <p className="text-gray-900 font-semibold">{vendor.vendor.bankAccount.branch_name || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-semibold text-gray-600 mb-1">Account Type</h4>
+                          <p className="text-gray-900 font-semibold capitalize">{vendor.vendor.bankAccount.account_type || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+                      <p className="text-yellow-800 text-sm">⚠️ Bank account details not provided</p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Store Details */}
-                {vendor.vendor?.store && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Store Details</h3>
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <p className="font-semibold text-gray-800 mb-2">{vendor.vendor.store.store_name}</p>
-                      <p className="text-sm text-gray-600 mb-3">{vendor.vendor.store.store_description}</p>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600">Support Email:</span>
-                          <p className="font-semibold">{vendor.vendor.store.customer_support_email}</p>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    Store Information
+                  </h3>
+                  {vendor.vendor?.store ? (
+                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200">
+                      <div className="mb-4">
+                        <h4 className="text-xl font-bold text-gray-900 mb-2">{vendor.vendor.store.store_name}</h4>
+                        {vendor.vendor.store.store_description && (
+                          <p className="text-gray-700 text-sm">{vendor.vendor.store.store_description}</p>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white rounded-lg p-4">
+                          <h4 className="text-xs font-semibold text-gray-600 mb-1">Customer Support Email</h4>
+                          <p className="text-gray-900 font-medium text-sm">{vendor.vendor.store.customer_support_email}</p>
                         </div>
-                        <div>
-                          <span className="text-gray-600">Support Phone:</span>
-                          <p className="font-semibold">{vendor.vendor.store.customer_support_phone}</p>
+                        <div className="bg-white rounded-lg p-4">
+                          <h4 className="text-xs font-semibold text-gray-600 mb-1">Customer Support Phone</h4>
+                          <p className="text-gray-900 font-medium">+91 {vendor.vendor.store.customer_support_phone}</p>
                         </div>
+                        {vendor.vendor.store.store_logo && (
+                          <div className="bg-white rounded-lg p-4">
+                            <h4 className="text-xs font-semibold text-gray-600 mb-2">Store Logo</h4>
+                            <img src={vendor.vendor.store.store_logo} alt="Store Logo" className="h-12 object-contain" />
+                          </div>
+                        )}
+                        {vendor.vendor.store.store_banner && (
+                          <div className="bg-white rounded-lg p-4">
+                            <h4 className="text-xs font-semibold text-gray-600 mb-2">Store Banner</h4>
+                            <img src={vendor.vendor.store.store_banner} alt="Store Banner" className="h-12 object-cover rounded" />
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+                      <p className="text-yellow-800 text-sm">⚠️ Store details not provided</p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Action Buttons */}
                 <div className="flex justify-end space-x-4">
