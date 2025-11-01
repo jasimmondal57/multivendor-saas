@@ -13,10 +13,10 @@ class VendorStore extends Model
         'store_description',
         'store_logo',
         'store_banner',
-        'return_policy',
-        'shipping_policy',
         'customer_support_email',
         'customer_support_phone',
+        // Note: return_policy and shipping_policy removed
+        // These are managed centrally by admin in multi-vendor marketplace
     ];
 
     public function vendor(): BelongsTo

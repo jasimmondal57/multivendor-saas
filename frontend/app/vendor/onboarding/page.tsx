@@ -66,8 +66,6 @@ export default function VendorOnboarding() {
       store_description: '',
       store_logo: '',
       store_banner: '',
-      return_policy: '',
-      shipping_policy: '',
       customer_support_email: user?.email || '',
       customer_support_phone: cleanPhone,
     };
@@ -668,26 +666,18 @@ export default function VendorOnboarding() {
                 />
               </div>
 
-              <div>
-                <label className={labelClass}>Return Policy</label>
-                <textarea
-                  rows={3}
-                  className={inputClass}
-                  value={storeDetails.return_policy}
-                  onChange={(e) => setStoreDetails({ ...storeDetails, return_policy: e.target.value })}
-                  placeholder="e.g., 7 days return policy..."
-                />
-              </div>
-
-              <div>
-                <label className={labelClass}>Shipping Policy</label>
-                <textarea
-                  rows={3}
-                  className={inputClass}
-                  value={storeDetails.shipping_policy}
-                  onChange={(e) => setStoreDetails({ ...storeDetails, shipping_policy: e.target.value })}
-                  placeholder="e.g., Ships within 2-3 business days..."
-                />
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-1">Shipping & Return Policies</h4>
+                    <p className="text-sm text-blue-800">
+                      Shipping and return policies are managed centrally by the platform admin to ensure consistent customer experience across all vendors.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-between">

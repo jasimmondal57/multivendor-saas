@@ -182,11 +182,12 @@ class VendorOnboardingController extends Controller
             'store_description' => 'nullable|string',
             'store_logo' => 'nullable|url',
             'store_banner' => 'nullable|url',
-            'return_policy' => 'nullable|string',
-            'shipping_policy' => 'nullable|string',
             'customer_support_email' => 'required|email',
             'customer_support_phone' => 'required|string',
         ]);
+
+        // Note: Shipping and return policies are managed centrally by admin
+        // They are not vendor-specific in a multi-vendor marketplace
 
         VendorStore::updateOrCreate(
             ['vendor_id' => $vendor->id],
