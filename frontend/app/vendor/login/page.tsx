@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { authService } from '@/lib/auth';
+import api from '@/lib/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -29,6 +30,23 @@ export default function VendorLoginPage() {
         // Clear the stored token since this is not a vendor
         await authService.logout();
         return;
+      }
+
+      // Check onboarding status
+      try {
+        const onboardingResponse = await api.get('/v1/vendor/onboarding/status');
+        if (onboardingResponse.data.success) {
+          const { is_completed } = onboardingResponse.data.data;
+
+          // Redirect to onboarding if not completed
+          if (!is_completed) {
+            window.location.href = '/vendor/onboarding';
+            return;
+          }
+        }
+      } catch (onboardingError) {
+        console.error('Failed to check onboarding status:', onboardingError);
+        // Continue to dashboard even if onboarding check fails
       }
 
       // Use window.location for a full page reload to ensure AuthContext picks up the user

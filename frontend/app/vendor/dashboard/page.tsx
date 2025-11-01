@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 import VendorDashboard from '@/components/vendor/VendorDashboard';
 import VendorLeaveManagement from '@/components/vendor/VendorLeaveManagement';
 import VendorProducts from '@/components/vendor/VendorProducts';
@@ -19,6 +20,38 @@ export default function VendorDashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [activeMenu, setActiveMenu] = useState('dashboard');
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+
+  // Check onboarding status
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!user || user.user_type !== 'vendor') {
+        setCheckingOnboarding(false);
+        return;
+      }
+
+      try {
+        const response = await api.get('/v1/vendor/onboarding/status');
+        if (response.data.success) {
+          const { is_completed, current_step } = response.data.data;
+
+          // If onboarding is not completed, redirect to onboarding page
+          if (!is_completed) {
+            router.push('/vendor/onboarding');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check onboarding status:', error);
+      } finally {
+        setCheckingOnboarding(false);
+      }
+    };
+
+    if (!authLoading && user) {
+      checkOnboardingStatus();
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -31,12 +64,14 @@ export default function VendorDashboardPage() {
     }
   }, [user, authLoading, router]);
 
-  if (authLoading) {
+  if (authLoading || checkingOnboarding) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="text-lg font-medium text-gray-700">Loading dashboard...</div>
+          <div className="text-lg font-medium text-gray-700">
+            {authLoading ? 'Loading...' : 'Checking onboarding status...'}
+          </div>
         </div>
       </div>
     );
