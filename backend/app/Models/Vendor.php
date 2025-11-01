@@ -37,6 +37,10 @@ class Vendor extends Model
         'logo',
         'banner',
         'status',
+        'verification_status',
+        'rejection_reason',
+        'approved_at',
+        'approved_by',
         'suspension_reason',
         'suspended_at',
         'suspended_by',
@@ -52,9 +56,11 @@ class Vendor extends Model
     protected $casts = [
         'kyc_verified_at' => 'datetime',
         'suspended_at' => 'datetime',
+        'approved_at' => 'datetime',
         'commission_percentage' => 'decimal:2',
         'total_sales' => 'decimal:2',
         'average_rating' => 'decimal:2',
+        'gst_registered' => 'boolean',
     ];
 
     protected static function boot()
