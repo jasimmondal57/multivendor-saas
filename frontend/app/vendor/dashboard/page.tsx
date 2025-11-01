@@ -21,6 +21,28 @@ export default function VendorDashboardPage() {
   const router = useRouter();
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [notificationStats, setNotificationStats] = useState<any>(null);
+
+  // Fetch notification stats
+  useEffect(() => {
+    const fetchNotificationStats = async () => {
+      try {
+        const response = await api.get('/v1/vendor/notifications/stats');
+        if (response.data.success) {
+          setNotificationStats(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching notification stats:', error);
+      }
+    };
+
+    if (user && user.user_type === 'vendor') {
+      fetchNotificationStats();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchNotificationStats, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   // Check onboarding status
   useEffect(() => {
@@ -86,7 +108,7 @@ export default function VendorDashboardPage() {
   const getMenuItems = () => [
     { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
     { id: 'products', label: 'Products', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-    { id: 'orders', label: 'Orders', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
+    { id: 'orders', label: 'Orders', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z', badge: notificationStats?.pending_orders || 0 },
     { id: 'returns', label: 'Returns', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
     { id: 'alerts', label: 'Low Stock Alerts', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
     { id: 'leave', label: 'Leave Management', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
@@ -142,7 +164,7 @@ export default function VendorDashboardPage() {
               <button
                 key={item.id}
                 onClick={() => setActiveMenu(item.id)}
-                className={`w-full flex items-center px-4 py-3 rounded-lg transition-all ${
+                className={`w-full flex items-center px-4 py-3 rounded-lg transition-all relative ${
                   activeMenu === item.id
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                     : 'text-gray-700 hover:bg-gray-100'
@@ -151,7 +173,12 @@ export default function VendorDashboardPage() {
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                 </svg>
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium flex-1 text-left">{item.label}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
