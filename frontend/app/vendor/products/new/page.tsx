@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import ImageUpload from '@/components/ImageUpload';
+import api from '@/lib/api';
 
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
-  
+  const [categories, setCategories] = useState<any[]>([]);
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: '',
+    category_id: '',
     mrp: '',
     selling_price: '',
     stock: '',
@@ -25,13 +27,20 @@ export default function NewProductPage() {
     specifications: '',
   });
 
-  const categories = [
-    { id: 1, name: 'Electronics', slug: 'electronics' },
-    { id: 2, name: 'Fashion', slug: 'fashion' },
-    { id: 3, name: 'Home & Kitchen', slug: 'home-kitchen' },
-    { id: 4, name: 'Books', slug: 'books' },
-    { id: 5, name: 'Sports', slug: 'sports' },
-  ];
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/v1/categories');
+        if (response.data.success) {
+          setCategories(response.data.data.data || response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -40,26 +49,65 @@ export default function NewProductPage() {
     });
   };
 
-  const handleImageUpload = (imageUrl: string) => {
-    setProductImages([...productImages, imageUrl]);
+  const handleImageUpload = (imageUrl: string | string[]) => {
+    if (Array.isArray(imageUrl)) {
+      setProductImages([...productImages, ...imageUrl]);
+    } else {
+      setProductImages([...productImages, imageUrl]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
+    if (productImages.length === 0) {
+      alert('Please upload at least one product image');
+      return;
+    }
+
+    if (!formData.category_id) {
+      alert('Please select a category');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // In a real app, submit to API
-      console.log('Product data:', { ...formData, images: productImages });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      alert('Product created successfully!');
-      router.push('/vendor/products');
-    } catch (error) {
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        category_id: parseInt(formData.category_id),
+        mrp: parseFloat(formData.mrp),
+        selling_price: parseFloat(formData.selling_price),
+        stock_quantity: parseInt(formData.stock),
+        sku: formData.sku || undefined,
+        brand: formData.brand || undefined,
+        hsn_code: formData.hsn_code,
+        gst_percentage: parseFloat(formData.gst_percentage),
+        specifications: formData.specifications || undefined,
+        images: productImages,
+      };
+
+      const response = await api.post('/v1/vendor/products', payload);
+
+      if (response.data.success) {
+        alert('Product created successfully! Pending admin approval.');
+        router.push('/vendor/dashboard');
+      }
+    } catch (error: any) {
       console.error('Error creating product:', error);
-      alert('Failed to create product');
+      const errorMessage = error.response?.data?.message || 'Failed to create product';
+      const errors = error.response?.data?.errors;
+
+      if (errors) {
+        const errorDetails = Object.entries(errors)
+          .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        alert(`Validation errors:\n${errorDetails}`);
+      } else {
+        alert(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -138,15 +186,15 @@ export default function NewProductPage() {
                   Category <span className="text-red-500">*</span>
                 </label>
                 <select
-                  name="category"
-                  value={formData.category}
+                  name="category_id"
+                  value={formData.category_id}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Select category</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.slug}>
+                    <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>
                   ))}

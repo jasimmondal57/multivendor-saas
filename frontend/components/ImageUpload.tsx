@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import api from '@/lib/api';
 
 interface ImageUploadProps {
-  onUploadSuccess?: (imageUrl: string) => void;
+  onUploadSuccess?: (imageUrl: string | string[]) => void;
   onUploadError?: (error: string) => void;
   multiple?: boolean;
   maxFiles?: number;
@@ -53,7 +53,7 @@ export default function ImageUpload({
           const newImages = response.data.data.map((img: any) => img.full_url);
           setUploadedImages([...uploadedImages, ...newImages]);
           setPreviewImages([...previewImages, ...newImages]);
-          onUploadSuccess?.(newImages[0]);
+          onUploadSuccess?.(newImages);
         }
       } else {
         // Upload single image
