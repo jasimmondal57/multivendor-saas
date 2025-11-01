@@ -7,11 +7,26 @@ import Header from '@/components/Header';
 import ImageUpload from '@/components/ImageUpload';
 import api from '@/lib/api';
 
+interface CategoryAttribute {
+  id: number;
+  name: string;
+  slug: string;
+  input_type: 'text' | 'number' | 'textarea' | 'select' | 'multi_select' | 'color' | 'date';
+  options: string[] | null;
+  is_required: boolean;
+  is_filterable: boolean;
+  is_variant: boolean;
+  help_text: string | null;
+  sort_order: number;
+}
+
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
+  const [productAttributes, setProductAttributes] = useState<Record<number, any>>({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -42,11 +57,49 @@ export default function NewProductPage() {
     fetchCategories();
   }, []);
 
+  const fetchCategoryAttributes = async (categoryId: number) => {
+    try {
+      const response = await api.get(`/v1/vendor/categories/${categoryId}/attributes`);
+      if (response.data.success) {
+        setCategoryAttributes(response.data.data || []);
+        // Initialize product attributes with empty values
+        const initialAttributes: Record<number, any> = {};
+        response.data.data.forEach((attr: CategoryAttribute) => {
+          initialAttributes[attr.id] = attr.input_type === 'multi_select' ? [] : '';
+        });
+        setProductAttributes(initialAttributes);
+      }
+    } catch (error) {
+      console.error('Failed to fetch category attributes:', error);
+      setCategoryAttributes([]);
+      setProductAttributes({});
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleCategoryChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const categoryId = e.target.value;
+    setFormData({ ...formData, category_id: categoryId });
+
+    if (categoryId) {
+      await fetchCategoryAttributes(parseInt(categoryId));
+    } else {
+      setCategoryAttributes([]);
+      setProductAttributes({});
+    }
+  };
+
+  const handleAttributeChange = (attributeId: number, value: any) => {
+    setProductAttributes(prev => ({
+      ...prev,
+      [attributeId]: value,
+    }));
   };
 
   const handleImageUpload = (imageUrl: string | string[]) => {
@@ -87,6 +140,7 @@ export default function NewProductPage() {
         gst_percentage: parseFloat(formData.gst_percentage),
         specifications: formData.specifications || undefined,
         images: productImages,
+        attributes: productAttributes,
       };
 
       const response = await api.post('/v1/vendor/products', payload);
@@ -188,7 +242,7 @@ export default function NewProductPage() {
                 <select
                   name="category_id"
                   value={formData.category_id}
-                  onChange={handleChange}
+                  onChange={handleCategoryChange}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
@@ -246,6 +300,115 @@ export default function NewProductPage() {
               </div>
             </div>
           </div>
+
+          {/* Category-Specific Attributes */}
+          {categoryAttributes.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Product Attributes</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {categoryAttributes.map((attr) => (
+                  <div key={attr.id} className={attr.input_type === 'textarea' ? 'md:col-span-2' : ''}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {attr.name} {attr.is_required && <span className="text-red-500">*</span>}
+                    </label>
+
+                    {attr.input_type === 'text' && (
+                      <input
+                        type="text"
+                        required={attr.is_required}
+                        value={productAttributes[attr.id] || ''}
+                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder={`Enter ${attr.name.toLowerCase()}`}
+                      />
+                    )}
+
+                    {attr.input_type === 'number' && (
+                      <input
+                        type="number"
+                        required={attr.is_required}
+                        value={productAttributes[attr.id] || ''}
+                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder={`Enter ${attr.name.toLowerCase()}`}
+                      />
+                    )}
+
+                    {attr.input_type === 'textarea' && (
+                      <textarea
+                        required={attr.is_required}
+                        value={productAttributes[attr.id] || ''}
+                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                        rows={4}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder={`Enter ${attr.name.toLowerCase()}`}
+                      />
+                    )}
+
+                    {attr.input_type === 'select' && attr.options && (
+                      <select
+                        required={attr.is_required}
+                        value={productAttributes[attr.id] || ''}
+                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      >
+                        <option value="">Select {attr.name.toLowerCase()}</option>
+                        {attr.options.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {attr.input_type === 'multi_select' && attr.options && (
+                      <select
+                        multiple
+                        required={attr.is_required}
+                        value={productAttributes[attr.id] || []}
+                        onChange={(e) => {
+                          const values = Array.from(e.target.selectedOptions, option => option.value);
+                          handleAttributeChange(attr.id, values);
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        size={Math.min(attr.options.length, 5)}
+                      >
+                        {attr.options.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {attr.input_type === 'color' && (
+                      <input
+                        type="color"
+                        required={attr.is_required}
+                        value={productAttributes[attr.id] || '#000000'}
+                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                        className="w-full h-12 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                    )}
+
+                    {attr.input_type === 'date' && (
+                      <input
+                        type="date"
+                        required={attr.is_required}
+                        value={productAttributes[attr.id] || ''}
+                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                    )}
+
+                    {attr.help_text && (
+                      <p className="text-xs text-gray-500 mt-1">{attr.help_text}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Pricing */}
           <div className="bg-white rounded-2xl shadow-md p-6">
