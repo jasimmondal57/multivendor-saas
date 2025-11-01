@@ -55,15 +55,22 @@ export default function VendorOnboarding() {
   });
 
   // Step 4: Store Details
-  const [storeDetails, setStoreDetails] = useState({
-    store_name: '',
-    store_description: '',
-    store_logo: '',
-    store_banner: '',
-    return_policy: '',
-    shipping_policy: '',
-    customer_support_email: '',
-    customer_support_phone: '',
+  const [storeDetails, setStoreDetails] = useState(() => {
+    let cleanPhone = user?.phone || '';
+    if (cleanPhone) {
+      cleanPhone = cleanPhone.replace(/[\s\-\(\)\+]/g, '').replace(/^91/, '').slice(-10);
+    }
+
+    return {
+      store_name: '',
+      store_description: '',
+      store_logo: '',
+      store_banner: '',
+      return_policy: '',
+      shipping_policy: '',
+      customer_support_email: user?.email || '',
+      customer_support_phone: cleanPhone,
+    };
   });
 
   // Step 5: Documents
@@ -92,6 +99,13 @@ export default function VendorOnboarding() {
         ...prev,
         contact_person_phone: cleanPhone,
         contact_person_email: user.email || '',
+      }));
+
+      // Also update store support details
+      setStoreDetails(prev => ({
+        ...prev,
+        customer_support_phone: cleanPhone,
+        customer_support_email: user.email || '',
       }));
     }
   }, [user]);
@@ -613,22 +627,33 @@ export default function VendorOnboarding() {
                   <input
                     type="email"
                     required
-                    className={inputClass}
+                    className={`${inputClass} bg-gray-100 cursor-not-allowed`}
                     value={storeDetails.customer_support_email}
-                    onChange={(e) => setStoreDetails({ ...storeDetails, customer_support_email: e.target.value })}
+                    readOnly
+                    title="Support email is taken from your registered account"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Using your registered email address</p>
                 </div>
 
                 <div>
                   <label className={labelClass}>Customer Support Phone *</label>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    className={inputClass}
-                    value={storeDetails.customer_support_phone}
-                    onChange={(e) => setStoreDetails({ ...storeDetails, customer_support_phone: e.target.value })}
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl text-gray-600 font-medium">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      required
+                      maxLength={10}
+                      pattern="[0-9]{10}"
+                      className={`${inputClass} bg-gray-100 cursor-not-allowed flex-1`}
+                      value={storeDetails.customer_support_phone}
+                      readOnly
+                      title="Support phone is taken from your registered account"
+                      placeholder="10-digit mobile number"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Using your registered phone number</p>
                 </div>
               </div>
 
