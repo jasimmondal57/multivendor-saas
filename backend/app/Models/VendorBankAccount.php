@@ -25,7 +25,11 @@ class VendorBankAccount extends Model
     ];
 
     protected $hidden = [
-        'account_number', // Hide sensitive data
+        // 'account_number', // Commented out - Admin needs to see this for verification
+    ];
+
+    protected $appends = [
+        'masked_account_number',
     ];
 
     public function vendor(): BelongsTo
