@@ -9,6 +9,8 @@
 node_modules/
 /vendor/
 backend/vendor/
+package-lock.json
+frontend/package-lock.json
 
 # Laravel
 backend/.env
