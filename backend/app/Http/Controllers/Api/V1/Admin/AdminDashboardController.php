@@ -51,7 +51,7 @@ class AdminDashboardController extends Controller
      */
     public function vendors(Request $request)
     {
-        $query = Vendor::with(['user']);
+        $query = Vendor::with(['user', 'kycDocuments', 'bankAccount', 'store']);
 
         // Filter by status
         if ($request->has('status')) {
